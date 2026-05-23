@@ -148,66 +148,97 @@ function CalendarPicker({year,month,busyDates,onToggle,conflictMap={},readOnly=f
   );
 }
 
-// ── AUTH SCREEN (login only — no public signup) ───────────────────────────────
+// ── AUTH SCREEN ───────────────────────────────────────────────────────────────
 function AuthScreen({onAuth}){
-  const [email,setEmail]=useState('');
-  const [password,setPassword]=useState('');
-  const [loading,setLoading]=useState(false);
-  const [error,setError]=useState('');
-  // Handle invite link: Supabase puts #access_token in URL after invite
-  const [isInvite,setIsInvite]=useState(false);
-  const [newPassword,setNewPassword]=useState('');
-  const [settingPassword,setSettingPassword]=useState(false);
+  const [mode,setMode]         = useState('login'); // login | signup | expired | invalid
+  const [email,setEmail]       = useState('');
+  const [password,setPassword] = useState('');
+  const [name,setName]         = useState('');
+  const [loading,setLoading]   = useState(false);
+  const [checking,setChecking] = useState(false);
+  const [error,setError]       = useState('');
 
+  // Check invite code from URL against DB
   useEffect(()=>{
-    // Check if this is an invite/recovery link
-    const hash=window.location.hash;
-    if(hash.includes('type=invite')||hash.includes('type=recovery')){
-      setIsInvite(true);
-    }
+    const code = new URLSearchParams(window.location.search).get('join');
+    if(!code) return;
+    setChecking(true);
+    sb.from('invite_codes').select('*').eq('code', code).maybeSingle().then(({data})=>{
+      if(!data){
+        setMode('invalid'); // code doesn't exist
+      } else if(new Date(data.expires_at) < new Date()){
+        setMode('expired'); // code exists but expired
+      } else {
+        setMode('signup'); // valid!
+      }
+      setChecking(false);
+    });
   },[]);
 
   async function handleLogin(){
-    setLoading(true);setError('');
+    setLoading(true); setError('');
     const{error:e}=await sb.auth.signInWithPassword({email,password});
-    if(e)setError('Invalid email or password. Please check your credentials.');
+    if(e) setError('Invalid email or password.');
     setLoading(false);
   }
 
-  async function handleSetPassword(){
-    if(newPassword.length<6){setError('Password must be at least 6 characters.');return;}
-    setSettingPassword(true);setError('');
-    const{error:e}=await sb.auth.updateUser({password:newPassword});
-    if(e)setError(e.message);
-    else window.location.hash='';
-    setSettingPassword(false);
+  async function handleSignup(){
+    if(!name.trim())       return setError('Please enter your full name.');
+    if(!email.trim())      return setError('Please enter your email.');
+    if(password.length<6)  return setError('Password must be at least 6 characters.');
+    setLoading(true); setError('');
+    // Re-validate invite code is still valid
+    const code = new URLSearchParams(window.location.search).get('join');
+    const{data:inv}=await sb.from('invite_codes').select('expires_at').eq('code',code).maybeSingle();
+    if(!inv||new Date(inv.expires_at)<new Date()){
+      setMode('expired'); setLoading(false); return;
+    }
+    // Check duplicate email
+    const{data:existing}=await sb.from('profiles').select('id').eq('email',email.trim().toLowerCase()).maybeSingle();
+    if(existing){ setError('An account with this email already exists. Please sign in.'); setLoading(false); return; }
+    const{error:e}=await sb.auth.signUp({
+      email: email.trim(), password,
+      options:{ data:{ full_name: name.trim() } }
+    });
+    if(e) setError(e.message);
+    setLoading(false);
   }
 
-  // Invite flow — set your password
-  if(isInvite) return(
+  // Loading while checking invite code
+  if(checking) return(
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:T.bg,flexDirection:'column',gap:16}}>
+      <Spinner size={28}/>
+      <div style={{fontSize:12,color:T.text3,letterSpacing:2,textTransform:'uppercase'}}>Checking invite…</div>
+    </div>
+  );
+
+  // Expired link screen
+  if(mode==='expired') return(
     <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,background:T.bg}}>
-      <div className="fade-up" style={{width:'100%',maxWidth:380}}>
-        <div style={{textAlign:'center',marginBottom:40}}>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:11,letterSpacing:6,textTransform:'uppercase',color:T.text3,marginBottom:8}}>KPS Jewels</div>
-          <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontWeight:300,color:T.text,letterSpacing:1}}>Welcome</h1>
-          <div style={{width:40,height:1,background:T.gold,margin:'12px auto 0'}}/>
-        </div>
-        <Card style={{padding:28}}>
-          <p style={{fontSize:13,color:T.text2,marginBottom:20,lineHeight:1.6}}>You've been invited to KPS Jewels Meeting Planner. Please set your password to continue.</p>
-          <div style={{display:'flex',flexDirection:'column',gap:14}}>
-            <div style={{display:'flex',flexDirection:'column',gap:6}}>
-              <label style={{fontSize:11,letterSpacing:2,textTransform:'uppercase',color:T.text3}}>Set Your Password</label>
-              <input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="Min. 6 characters" autoComplete="new-password"
-                onKeyDown={e=>e.key==='Enter'&&handleSetPassword()}
-                style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:T.radius,padding:'10px 14px',color:T.text,fontSize:14,outline:'none'}}/>
-            </div>
-            {error&&<div style={{fontSize:12,color:T.red,padding:'8px 12px',background:T.red+'11',borderRadius:6}}>{error}</div>}
-            <Btn onClick={handleSetPassword} loading={settingPassword} style={{padding:'12px',fontSize:13,letterSpacing:1}}>Set Password & Sign In</Btn>
-          </div>
-        </Card>
+      <div className="fade-up" style={{width:'100%',maxWidth:380,textAlign:'center'}}>
+        <div style={{fontSize:11,letterSpacing:6,textTransform:'uppercase',color:T.text3,fontFamily:"'Cormorant Garamond',serif",marginBottom:12}}>KPS Jewels</div>
+        <div style={{fontSize:40,marginBottom:16}}>⏰</div>
+        <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:400,color:T.text,marginBottom:12}}>Invite Link Expired</h2>
+        <p style={{fontSize:13,color:T.text2,lineHeight:1.7,marginBottom:24}}>This invite link has expired (links are valid for 48 hours). Please ask your administrator to generate a new one.</p>
+        <Btn variant="secondary" onClick={()=>setMode('login')} style={{margin:'0 auto'}}>Go to Sign In</Btn>
       </div>
     </div>
   );
+
+  // Invalid link screen
+  if(mode==='invalid') return(
+    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,background:T.bg}}>
+      <div className="fade-up" style={{width:'100%',maxWidth:380,textAlign:'center'}}>
+        <div style={{fontSize:11,letterSpacing:6,textTransform:'uppercase',color:T.text3,fontFamily:"'Cormorant Garamond',serif",marginBottom:12}}>KPS Jewels</div>
+        <div style={{fontSize:40,marginBottom:16}}>🚫</div>
+        <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:400,color:T.text,marginBottom:12}}>Invalid Invite Link</h2>
+        <p style={{fontSize:13,color:T.text2,lineHeight:1.7,marginBottom:24}}>This invite link is not valid. Please ask your administrator for a new one.</p>
+        <Btn variant="secondary" onClick={()=>setMode('login')} style={{margin:'0 auto'}}>Go to Sign In</Btn>
+      </div>
+    </div>
+  );
+
+  const isSignup = mode === 'signup';
 
   return(
     <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,background:T.bg}}>
@@ -218,11 +249,23 @@ function AuthScreen({onAuth}){
           <div style={{width:40,height:1,background:T.gold,margin:'12px auto 0'}}/>
         </div>
         <Card style={{padding:28}}>
-          <div style={{marginBottom:20,paddingBottom:16,borderBottom:`1px solid ${T.border}`}}>
-            <div style={{fontSize:13,color:T.text,fontFamily:"'Cormorant Garamond',serif",letterSpacing:0.5}}>Sign In</div>
-            <div style={{fontSize:11,color:T.text3,marginTop:2}}>Access is by invitation only</div>
+          {/* Tab toggle — only show signup if on invite link */}
+          <div style={{display:'flex',gap:0,marginBottom:24,background:T.bg2,borderRadius:8,padding:3}}>
+            {(isSignup?[['login','Sign In'],['signup','Sign Up']]:[['login','Sign In']]).map(([m,label])=>(
+              <button key={m} onClick={()=>{setMode(m);setError('');}}
+                style={{flex:1,padding:'8px',borderRadius:6,border:'none',background:mode===m?T.bg3:'transparent',color:mode===m?T.text:T.text3,fontSize:12,letterSpacing:1,textTransform:'uppercase',transition:'all 0.15s',cursor:'pointer',fontFamily:'inherit'}}>
+                {label}
+              </button>
+            ))}
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:14}}>
+            {isSignup&&(
+              <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                <label style={{fontSize:11,letterSpacing:2,textTransform:'uppercase',color:T.text3}}>Full Name</label>
+                <input type="text" value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name" autoComplete="name"
+                  style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:T.radius,padding:'10px 14px',color:T.text,fontSize:14,outline:'none'}}/>
+              </div>
+            )}
             <div style={{display:'flex',flexDirection:'column',gap:6}}>
               <label style={{fontSize:11,letterSpacing:2,textTransform:'uppercase',color:T.text3}}>Email</label>
               <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="your@email.com" autoComplete="email"
@@ -230,17 +273,22 @@ function AuthScreen({onAuth}){
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:6}}>
               <label style={{fontSize:11,letterSpacing:2,textTransform:'uppercase',color:T.text3}}>Password</label>
-              <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password"
-                onKeyDown={e=>e.key==='Enter'&&handleLogin()}
+              <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"
+                autoComplete={isSignup?'new-password':'current-password'}
+                onKeyDown={e=>e.key==='Enter'&&(isSignup?handleSignup():handleLogin())}
                 style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:T.radius,padding:'10px 14px',color:T.text,fontSize:14,outline:'none'}}/>
             </div>
             {error&&<div style={{fontSize:12,color:T.red,padding:'8px 12px',background:T.red+'11',borderRadius:6}}>{error}</div>}
-            <Btn onClick={handleLogin} loading={loading} style={{marginTop:4,padding:'12px',fontSize:13,letterSpacing:1}}>Sign In</Btn>
+            <Btn onClick={isSignup?handleSignup:handleLogin} loading={loading} style={{marginTop:4,padding:'12px',fontSize:13,letterSpacing:1}}>
+              {isSignup?'Create Account':'Sign In'}
+            </Btn>
           </div>
         </Card>
-        <p style={{textAlign:'center',fontSize:11,color:T.text3,marginTop:16,lineHeight:1.6}}>
-          Don't have access? Contact your administrator to receive an invite.
-        </p>
+        {!isSignup&&(
+          <p style={{textAlign:'center',fontSize:11,color:T.text3,marginTop:16,lineHeight:1.6}}>
+            Don't have access? Ask your administrator for the invite link.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -756,6 +804,100 @@ function CreateMeetingModal({profile,onClose,onCreated}){
   );
 }
 
+// ── INVITE TAB COMPONENT ──────────────────────────────────────────────────────
+function InviteTab({profile,showToast}){
+  const [activeCode,setActiveCode] = useState(null);
+  const [loading,setLoading]       = useState(true);
+  const [generating,setGenerating] = useState(false);
+  const [copied,setCopied]         = useState(false);
+
+  useEffect(()=>{ loadCode(); },[]);
+
+  async function loadCode(){
+    setLoading(true);
+    const{data}=await sb.from('invite_codes').select('*').order('created_at',{ascending:false}).limit(1).maybeSingle();
+    setActiveCode(data);
+    setLoading(false);
+  }
+
+  async function generateCode(){
+    setGenerating(true);
+    // Delete all old codes first
+    await sb.from('invite_codes').delete().neq('id','00000000-0000-0000-0000-000000000000');
+    // Generate new random code
+    const code = Math.random().toString(36).slice(2,10).toUpperCase();
+    const expiresAt = new Date(Date.now() + 48*60*60*1000).toISOString();
+    const{data}=await sb.from('invite_codes').insert({
+      code, expires_at: expiresAt, created_by: profile.id
+    }).select().single();
+    setActiveCode(data);
+    setGenerating(false);
+    showToast('New invite link generated ✓');
+  }
+
+  function copyLink(){
+    const url=`${window.location.origin}${window.location.pathname}?join=${activeCode.code}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true); setTimeout(()=>setCopied(false),2000);
+  }
+
+  function timeLeft(expiresAt){
+    const ms = new Date(expiresAt)-new Date();
+    if(ms<=0) return 'Expired';
+    const h = Math.floor(ms/3600000);
+    const m = Math.floor((ms%3600000)/60000);
+    return `${h}h ${m}m remaining`;
+  }
+
+  const isExpired = activeCode && new Date(activeCode.expires_at) < new Date();
+  const inviteUrl = activeCode ? `${window.location.origin}${window.location.pathname}?join=${activeCode.code}` : '';
+
+  if(loading) return <div style={{display:'flex',justifyContent:'center',padding:24}}><Spinner/></div>;
+
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+      {/* Status card */}
+      {activeCode&&!isExpired?(
+        <div style={{background:T.bg2,borderRadius:10,padding:'16px'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+            <div style={{fontSize:13,color:T.text}}>Active Invite Link</div>
+            <div style={{fontSize:11,color:T.green,background:T.green+'11',padding:'3px 10px',borderRadius:10}}>{timeLeft(activeCode.expires_at)}</div>
+          </div>
+          <div style={{background:T.bg3,border:`1px solid ${T.border2}`,borderRadius:8,padding:'10px 14px',fontSize:11,color:T.gold,fontFamily:'monospace',wordBreak:'break-all',marginBottom:12,lineHeight:1.6}}>
+            {inviteUrl}
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <Btn onClick={copyLink} style={{flex:1,padding:'10px',fontSize:12,letterSpacing:1}}>
+              {copied?'Copied ✓':'Copy Link'}
+            </Btn>
+            <Btn variant="danger" onClick={generateCode} loading={generating} style={{padding:'10px 14px',fontSize:12}}>
+              Regenerate
+            </Btn>
+          </div>
+        </div>
+      ):(
+        <div style={{background:T.bg2,borderRadius:10,padding:'20px',textAlign:'center'}}>
+          <div style={{fontSize:32,marginBottom:10}}>{activeCode?'⏰':'🔗'}</div>
+          <div style={{fontSize:14,color:T.text,marginBottom:6}}>
+            {activeCode?'Invite link has expired':'No active invite link'}
+          </div>
+          <div style={{fontSize:12,color:T.text3,marginBottom:16,lineHeight:1.6}}>
+            {activeCode
+              ?'Generate a new link to allow new members to sign up.'
+              :'Generate an invite link to share with new members. It will expire after 48 hours.'}
+          </div>
+          <Btn onClick={generateCode} loading={generating} style={{margin:'0 auto',padding:'11px 24px',fontSize:13}}>
+            Generate Invite Link
+          </Btn>
+        </div>
+      )}
+      <div style={{background:T.bg2,borderRadius:10,padding:'12px 14px',fontSize:11,color:T.text3,lineHeight:1.7}}>
+        💡 Links expire after <strong style={{color:T.text2}}>48 hours</strong>. Anyone without the link cannot sign up. Generate a new link anytime to revoke the old one.
+      </div>
+    </div>
+  );
+}
+
 // ── SUPER ADMIN MODAL ─────────────────────────────────────────────────────────
 function SuperAdminModal({profile,onClose}){
   const [tab,setTab]=useState('invite');
@@ -764,10 +906,6 @@ function SuperAdminModal({profile,onClose}){
   const [loading,setLoading]=useState(true);
   const [newDept,setNewDept]=useState('');
   const [toast,setToast]=useState('');
-  // Invite
-  const [inviteEmail,setInviteEmail]=useState('');
-  const [inviteName,setInviteName]=useState('');
-  const [inviting,setInviting]=useState(false);
 
   function showToast(msg,type='success'){setToast({msg,type});setTimeout(()=>setToast(''),3000);}
 
@@ -781,30 +919,6 @@ function SuperAdminModal({profile,onClose}){
     ]);
     setUsers(u||[]);setDepts(d||[]);
     setLoading(false);
-  }
-
-  async function inviteMember(){
-    if(!inviteEmail.trim()||!inviteName.trim())return;
-    setInviting(true);
-    // Use Supabase admin invite — sends email with invite link
-    const{data,error:e}=await sb.auth.admin?.inviteUserByEmail
-      ? sb.auth.admin.inviteUserByEmail(inviteEmail.trim(),{data:{full_name:inviteName.trim()}})
-      // Fallback: signUp with a random password (they'll use forgot password to set their own)
-      : await sb.functions.invoke('invite-user',{body:{email:inviteEmail.trim(),full_name:inviteName.trim()}});
-    if(e){
-      // Fallback: try regular signup which sends confirmation email
-      const{error:e2}=await sb.auth.signUp({
-        email:inviteEmail.trim(),
-        password:Math.random().toString(36).slice(-10)+'A1!',
-        options:{data:{full_name:inviteName.trim()},emailRedirectTo:window.location.origin+window.location.pathname}
-      });
-      if(e2)showToast('Error: '+e2.message,'error');
-      else{showToast(`Invite sent to ${inviteEmail} ✓`);setInviteEmail('');setInviteName('');loadAll();}
-    } else {
-      showToast(`Invite sent to ${inviteEmail} ✓`);
-      setInviteEmail('');setInviteName('');loadAll();
-    }
-    setInviting(false);
   }
 
   async function toggleSuperAdmin(u){
@@ -843,33 +957,7 @@ function SuperAdminModal({profile,onClose}){
         <>
           {/* INVITE TAB */}
           {tab==='invite'&&(
-            <div style={{display:'flex',flexDirection:'column',gap:16}}>
-              <div style={{background:T.bg2,borderRadius:10,padding:'14px 16px',fontSize:13,color:T.text2,lineHeight:1.7}}>
-                Enter the person's name and email. They'll receive an invite link to set their password and access the app.
-              </div>
-              <Input label="Full Name" value={inviteName} onChange={e=>setInviteName(e.target.value)} placeholder="e.g. Rahul Shah"/>
-              <Input label="Email Address" type="email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="rahul@kpsjewels.com"
-                onKeyDown={e=>e.key==='Enter'&&inviteMember()}/>
-              <Btn onClick={inviteMember} loading={inviting} style={{padding:'12px',fontSize:13,letterSpacing:1}}>
-                Send Invite
-              </Btn>
-              {users.length>0&&(
-                <div style={{marginTop:8}}>
-                  <div style={{fontSize:11,color:T.text3,letterSpacing:2,textTransform:'uppercase',marginBottom:10}}>Current Members ({users.length})</div>
-                  <div style={{display:'flex',flexDirection:'column',gap:6,maxHeight:220,overflowY:'auto'}}>
-                    {users.map(u=>(
-                      <div key={u.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 12px',background:T.bg2,borderRadius:8}}>
-                        <div>
-                          <div style={{fontSize:13,color:T.text}}>{u.full_name}</div>
-                          <div style={{fontSize:11,color:T.text3}}>{u.email}</div>
-                        </div>
-                        {u.is_super_admin&&<span style={{fontSize:10,color:T.gold,letterSpacing:1}}>SUPER ADMIN</span>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            <InviteTab profile={profile} showToast={showToast}/>
           )}
           {/* MEMBERS / SUPER ADMIN TAB */}
           {tab==='users'&&(
