@@ -362,6 +362,7 @@ function MeetingPage({token,profile,onBack}){
         <Btn onClick={handleSubmit} loading={saving} style={{width:'100%',marginTop:24,padding:'14px',fontSize:13,letterSpacing:1}}>
           {submitted?'Update Submission':'Submit Availability'}
         </Btn>
+        <Btn variant="ghost" onClick={onBack} style={{width:'100%',marginTop:10,padding:'12px',fontSize:12,letterSpacing:1,color:T.text3}}>← Back to Dashboard</Btn>
       </div>
       <Toast msg={toast.msg} type={toast.type}/>
     </div>
@@ -437,7 +438,10 @@ function MeetingCard({meeting,profile,onOpenMeeting,onRefresh}){
   const [stats,setStats]=useState(null);
   const [showDetails,setShowDetails]=useState(false);
   const [copied,setCopied]=useState(false);
+  const [confirmDelete,setConfirmDelete]=useState(false);
+  const [deleting,setDeleting]=useState(false);
   const shareUrl=`${window.location.origin}${window.location.pathname}?m=${meeting.share_token}`;
+  const canDelete=profile.is_super_admin;
 
   useEffect(()=>{loadStats();},[]);
 
@@ -452,6 +456,15 @@ function MeetingCard({meeting,profile,onOpenMeeting,onRefresh}){
   function copyLink(){
     navigator.clipboard.writeText(shareUrl);
     setCopied(true);setTimeout(()=>setCopied(false),2000);
+  }
+
+  async function deleteMeeting(){
+    setDeleting(true);
+    await sb.from('availability').delete().eq('meeting_id',meeting.id);
+    await sb.from('submissions').delete().eq('meeting_id',meeting.id);
+    await sb.from('meeting_members').delete().eq('meeting_id',meeting.id);
+    await sb.from('meetings').delete().eq('id',meeting.id);
+    onRefresh();
   }
 
   return(
@@ -476,10 +489,20 @@ function MeetingCard({meeting,profile,onOpenMeeting,onRefresh}){
           </div>
         )}
       </div>
-      <div style={{borderTop:`1px solid ${T.border}`,padding:'10px 18px',display:'flex',gap:8}}>
+      <div style={{borderTop:`1px solid ${T.border}`,padding:'10px 18px',display:'flex',gap:8,flexWrap:'wrap'}}>
         <Btn variant="secondary" onClick={()=>onOpenMeeting(meeting.share_token)} style={{fontSize:12,padding:'7px 14px'}}>Mark My Dates</Btn>
         <Btn variant="secondary" onClick={copyLink} style={{fontSize:12,padding:'7px 14px'}}>{copied?'Copied ✓':'Copy Link'}</Btn>
         <Btn variant="secondary" onClick={()=>setShowDetails(true)} style={{fontSize:12,padding:'7px 14px'}}>Best Dates</Btn>
+        {canDelete&&!confirmDelete&&(
+          <Btn variant="danger" onClick={()=>setConfirmDelete(true)} style={{fontSize:12,padding:'7px 14px',marginLeft:'auto'}}>Delete</Btn>
+        )}
+        {canDelete&&confirmDelete&&(
+          <div style={{marginLeft:'auto',display:'flex',gap:6,alignItems:'center'}}>
+            <span style={{fontSize:11,color:T.text3}}>Sure?</span>
+            <Btn variant="danger" loading={deleting} onClick={deleteMeeting} style={{fontSize:12,padding:'6px 12px'}}>Yes, delete</Btn>
+            <Btn variant="secondary" onClick={()=>setConfirmDelete(false)} style={{fontSize:12,padding:'6px 12px'}}>Cancel</Btn>
+          </div>
+        )}
       </div>
       {showDetails&&<MeetingDetailsModal meeting={meeting} onClose={()=>setShowDetails(false)}/>}
     </Card>
