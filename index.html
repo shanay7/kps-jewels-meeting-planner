@@ -195,8 +195,12 @@ function AuthScreen({onAuth}){
         <Card style={{padding:28}}>
           <p style={{fontSize:13,color:T.text2,marginBottom:20,lineHeight:1.6}}>You've been invited to KPS Jewels Meeting Planner. Please set your password to continue.</p>
           <div style={{display:'flex',flexDirection:'column',gap:14}}>
-            <Input label="Set Your Password" type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="Min. 6 characters"
-              onKeyDown={e=>e.key==='Enter'&&handleSetPassword()}/>
+            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+              <label style={{fontSize:11,letterSpacing:2,textTransform:'uppercase',color:T.text3}}>Set Your Password</label>
+              <input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="Min. 6 characters" autoComplete="new-password"
+                onKeyDown={e=>e.key==='Enter'&&handleSetPassword()}
+                style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:T.radius,padding:'10px 14px',color:T.text,fontSize:14,outline:'none'}}/>
+            </div>
             {error&&<div style={{fontSize:12,color:T.red,padding:'8px 12px',background:T.red+'11',borderRadius:6}}>{error}</div>}
             <Btn onClick={handleSetPassword} loading={settingPassword} style={{padding:'12px',fontSize:13,letterSpacing:1}}>Set Password & Sign In</Btn>
           </div>
@@ -219,9 +223,17 @@ function AuthScreen({onAuth}){
             <div style={{fontSize:11,color:T.text3,marginTop:2}}>Access is by invitation only</div>
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:14}}>
-            <Input label="Email" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="your@email.com"/>
-            <Input label="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"
-              onKeyDown={e=>e.key==='Enter'&&handleLogin()}/>
+            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+              <label style={{fontSize:11,letterSpacing:2,textTransform:'uppercase',color:T.text3}}>Email</label>
+              <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="your@email.com" autoComplete="email"
+                style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:T.radius,padding:'10px 14px',color:T.text,fontSize:14,outline:'none'}}/>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+              <label style={{fontSize:11,letterSpacing:2,textTransform:'uppercase',color:T.text3}}>Password</label>
+              <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password"
+                onKeyDown={e=>e.key==='Enter'&&handleLogin()}
+                style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:T.radius,padding:'10px 14px',color:T.text,fontSize:14,outline:'none'}}/>
+            </div>
             {error&&<div style={{fontSize:12,color:T.red,padding:'8px 12px',background:T.red+'11',borderRadius:6}}>{error}</div>}
             <Btn onClick={handleLogin} loading={loading} style={{marginTop:4,padding:'12px',fontSize:13,letterSpacing:1}}>Sign In</Btn>
           </div>
