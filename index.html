@@ -370,7 +370,7 @@ function MeetingPage({token,profile,onBack}){
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
-function Dashboard({profile,onOpenMeeting}){
+function Dashboard({profile,onOpenMeeting,onOpenBestDates}){
   const [meetings,setMeetings]=useState([]);
   const [loading,setLoading]=useState(true);
   const [showCreate,setShowCreate]=useState(false);
@@ -421,7 +421,7 @@ function Dashboard({profile,onOpenMeeting}){
         ):(
           <div style={{display:'flex',flexDirection:'column',gap:10}}>
             {meetings.map(m=>(
-              <MeetingCard key={m.id} meeting={m} profile={profile} onOpenMeeting={onOpenMeeting} onRefresh={loadMeetings}/>
+              <MeetingCard key={m.id} meeting={m} profile={profile} onOpenMeeting={onOpenMeeting} onOpenBestDates={onOpenBestDates} onRefresh={loadMeetings}/>
             ))}
           </div>
         )}
@@ -434,9 +434,8 @@ function Dashboard({profile,onOpenMeeting}){
 }
 
 // ── MEETING CARD ──────────────────────────────────────────────────────────────
-function MeetingCard({meeting,profile,onOpenMeeting,onRefresh}){
+function MeetingCard({meeting,profile,onOpenMeeting,onOpenBestDates,onRefresh}){
   const [stats,setStats]=useState(null);
-  const [showDetails,setShowDetails]=useState(false);
   const [copied,setCopied]=useState(false);
   const [confirmDelete,setConfirmDelete]=useState(false);
   const [deleting,setDeleting]=useState(false);
@@ -492,7 +491,7 @@ function MeetingCard({meeting,profile,onOpenMeeting,onRefresh}){
       <div style={{borderTop:`1px solid ${T.border}`,padding:'10px 18px',display:'flex',gap:8,flexWrap:'wrap'}}>
         <Btn variant="secondary" onClick={()=>onOpenMeeting(meeting.share_token)} style={{fontSize:12,padding:'7px 14px'}}>Mark My Dates</Btn>
         <Btn variant="secondary" onClick={copyLink} style={{fontSize:12,padding:'7px 14px'}}>{copied?'Copied ✓':'Copy Link'}</Btn>
-        <Btn variant="secondary" onClick={()=>setShowDetails(true)} style={{fontSize:12,padding:'7px 14px'}}>Best Dates</Btn>
+        <Btn variant="secondary" onClick={()=>onOpenBestDates(meeting)} style={{fontSize:12,padding:'7px 14px'}}>Best Dates</Btn>
         {canDelete&&!confirmDelete&&(
           <Btn variant="danger" onClick={()=>setConfirmDelete(true)} style={{fontSize:12,padding:'7px 14px',marginLeft:'auto'}}>Delete</Btn>
         )}
@@ -504,13 +503,12 @@ function MeetingCard({meeting,profile,onOpenMeeting,onRefresh}){
           </div>
         )}
       </div>
-      {showDetails&&<MeetingDetailsModal meeting={meeting} onClose={()=>setShowDetails(false)}/>}
     </Card>
   );
 }
 
-// ── BEST DATES MODAL ──────────────────────────────────────────────────────────
-function MeetingDetailsModal({meeting,onClose}){
+// ── BEST DATES PAGE (full screen grid) ───────────────────────────────────────
+function BestDatesPage({meeting,profile,onBack}){
   const [data,setData]=useState(null);
   const [loading,setLoading]=useState(true);
 
@@ -522,60 +520,153 @@ function MeetingDetailsModal({meeting,onClose}){
       sb.from('availability').select('busy_date,profile_id').eq('meeting_id',meeting.id),
       sb.from('submissions').select('profile_id,profiles(full_name)').eq('meeting_id',meeting.id),
     ]);
-    // Count conflicts per date
     const conflictMap={};
     (avail||[]).forEach(r=>{conflictMap[r.busy_date]=(conflictMap[r.busy_date]||0)+1;});
     const total=(members||[]).length;
-    // Build best dates: all must be free
     const days=getDays(meeting.year,meeting.month-1);
-    const best=[];
+    // Build ALL days with status
+    const allDays=[];
     for(let d=1;d<=days;d++){
       const dateStr=`${meeting.year}-${String(meeting.month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       const dow=new Date(meeting.year,meeting.month-1,d).getDay();
-      if((conflictMap[dateStr]||0)===0) best.push({d,dow,dateStr});
+      const conflicts=conflictMap[dateStr]||0;
+      const free=conflicts===0;
+      allDays.push({d,dow,dateStr,conflicts,free});
     }
-    // Pending members
     const subIds=new Set((subs||[]).map(s=>s.profile_id));
     const pending=(members||[]).filter(m=>!subIds.has(m.profile_id)).map(m=>m.profiles?.full_name||'—');
-    setData({members,total,best,pending,subs:subs||[]});
+    const freeDays=allDays.filter(x=>x.free);
+    setData({total,allDays,freeDays,pending});
     setLoading(false);
   }
 
+  // Calendar grid for the month
+  const first=getFirst(meeting.year,meeting.month-1);
+  const cells=useMemo(()=>{
+    if(!data) return [];
+    const c=[...Array(first).fill(null),...data.allDays];
+    while(c.length%7) c.push(null);
+    return c;
+  },[data,first]);
+
   return(
-    <Modal title={`Best Dates — ${meeting.title}`} onClose={onClose} width={500}>
-      {loading?<div style={{display:'flex',justifyContent:'center',padding:32}}><Spinner/></div>:(
-        <div>
+    <div style={{minHeight:'100vh',background:T.bg}}>
+      {/* Header */}
+      <div style={{background:T.bg1,borderBottom:`1px solid ${T.border}`,padding:'0 20px',height:54,display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <button onClick={onBack} style={{background:'none',border:'none',color:T.text3,fontSize:22,cursor:'pointer',lineHeight:1,padding:'0 8px 0 0'}}>←</button>
+          <div>
+            <div style={{fontSize:10,letterSpacing:3,textTransform:'uppercase',color:T.text3}}>Best Dates</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,color:T.text}}>{meeting.title}</div>
+          </div>
+        </div>
+        <div style={{fontSize:12,color:T.text3}}>{MONTHS[meeting.month-1]} {meeting.year}</div>
+      </div>
+
+      {loading?(
+        <div style={{display:'flex',justifyContent:'center',padding:60}}><Spinner size={32}/></div>
+      ):(
+        <div style={{maxWidth:600,margin:'0 auto',padding:'24px 16px 60px'}}>
+
+          {/* Pending warning */}
           {data.pending.length>0&&(
-            <div style={{background:'#c8a45a11',border:'1px solid #c8a45a33',borderRadius:8,padding:'10px 14px',marginBottom:16,fontSize:12,color:T.text2}}>
-              ⏳ <strong style={{color:T.text}}>{data.pending.length} member{data.pending.length>1?'s':''}</strong> haven't submitted yet: {data.pending.slice(0,4).join(', ')}{data.pending.length>4?` +${data.pending.length-4} more`:''}
+            <div style={{background:T.gold+'11',border:`1px solid ${T.gold}33`,borderRadius:10,padding:'12px 16px',marginBottom:20,fontSize:13,color:T.text2}}>
+              ⏳ <strong style={{color:T.text}}>{data.pending.length} member{data.pending.length>1?'s':''}</strong> haven't submitted yet — results may change.<br/>
+              <span style={{fontSize:11,color:T.text3}}>{data.pending.slice(0,5).join(', ')}{data.pending.length>5?` +${data.pending.length-5} more`:''}</span>
             </div>
           )}
-          <div style={{fontSize:12,color:T.text3,marginBottom:14}}>Showing dates where all {data.total} members are free</div>
-          {data.best.length===0?(
-            <div style={{textAlign:'center',padding:32,color:T.text2}}>
-              <div style={{fontSize:32,marginBottom:8}}>📭</div>
-              No fully free dates in {MONTHS[meeting.month-1]} {meeting.year}
+
+          {/* Summary strip */}
+          <div style={{display:'flex',gap:16,marginBottom:24}}>
+            <div style={{flex:1,background:T.bg1,border:`1px solid ${T.border}`,borderRadius:10,padding:'14px 16px',textAlign:'center'}}>
+              <div style={{fontSize:26,color:T.green,fontFamily:"'Cormorant Garamond',serif"}}>{data.freeDays.length}</div>
+              <div style={{fontSize:11,color:T.text3,letterSpacing:1,textTransform:'uppercase',marginTop:2}}>Free Days</div>
             </div>
-          ):(
-            <div style={{display:'flex',flexDirection:'column',gap:8}}>
-              {data.best.map(({d,dow,dateStr},idx)=>(
-                <div key={dateStr} style={{background:idx===0?T.gold+'11':T.bg2,border:`1px solid ${idx===0?T.gold+'44':T.border}`,borderRadius:10,padding:'14px 16px',display:'flex',alignItems:'center',gap:14}}>
-                  <div style={{textAlign:'center',minWidth:48}}>
-                    <div style={{fontSize:10,color:T.text3,textTransform:'uppercase',letterSpacing:1}}>{DAY_F[dow]}</div>
-                    <div style={{fontSize:28,color:idx===0?T.gold:T.text,lineHeight:1.1}}>{d}</div>
+            <div style={{flex:1,background:T.bg1,border:`1px solid ${T.border}`,borderRadius:10,padding:'14px 16px',textAlign:'center'}}>
+              <div style={{fontSize:26,color:T.text,fontFamily:"'Cormorant Garamond',serif"}}>{data.total}</div>
+              <div style={{fontSize:11,color:T.text3,letterSpacing:1,textTransform:'uppercase',marginTop:2}}>Members</div>
+            </div>
+            <div style={{flex:1,background:T.bg1,border:`1px solid ${T.border}`,borderRadius:10,padding:'14px 16px',textAlign:'center'}}>
+              <div style={{fontSize:26,color:data.pending.length===0?T.green:T.gold,fontFamily:"'Cormorant Garamond',serif"}}>{data.total-data.pending.length}</div>
+              <div style={{fontSize:11,color:T.text3,letterSpacing:1,textTransform:'uppercase',marginTop:2}}>Submitted</div>
+            </div>
+          </div>
+
+          {/* Calendar grid */}
+          <div style={{background:T.bg1,border:`1px solid ${T.border}`,borderRadius:14,padding:'20px 16px'}}>
+            <div style={{fontSize:13,color:T.text2,marginBottom:14,textAlign:'center',fontFamily:"'Cormorant Garamond',serif",letterSpacing:0.5}}>
+              {MONTHS[meeting.month-1]} {meeting.year}
+            </div>
+            {/* Day headers */}
+            <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',marginBottom:6}}>
+              {DAY_F.map((d,i)=>(
+                <div key={i} style={{textAlign:'center',fontSize:10,color:T.text3,padding:'4px 0',letterSpacing:1}}>{d.slice(0,1)}</div>
+              ))}
+            </div>
+            {/* Cells */}
+            <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4}}>
+              {cells.map((cell,i)=>{
+                if(!cell) return <div key={i}/>;
+                const {d,dow,free,conflicts}=cell;
+                const isToday=meeting.year===today.getFullYear()&&(meeting.month-1)===today.getMonth()&&d===today.getDate();
+                const isWeekend=dow===0||dow===6;
+                return(
+                  <div key={d} style={{
+                    background: free&&!isWeekend ? T.green+'22' : T.bg2,
+                    border: `1.5px solid ${free&&!isWeekend ? T.green+'66' : isToday ? T.gold+'66' : T.border}`,
+                    borderRadius: 8, padding: '8px 4px 6px',
+                    textAlign: 'center', minHeight: 52,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
+                    opacity: isWeekend ? 0.4 : 1,
+                  }}>
+                    <span style={{fontSize:14,color:free&&!isWeekend?T.green:isToday?T.gold:T.text2,fontWeight:free&&!isWeekend?600:400}}>
+                      {d}
+                    </span>
+                    {!free&&conflicts>0&&(
+                      <span style={{fontSize:9,color:T.red,background:T.red+'22',borderRadius:3,padding:'0 4px'}}>{conflicts}</span>
+                    )}
+                    {free&&!isWeekend&&(
+                      <span style={{fontSize:9,color:T.green,lineHeight:1}}>✓</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {/* Legend */}
+            <div style={{display:'flex',gap:16,marginTop:14,fontSize:11,color:T.text3,justifyContent:'center'}}>
+              <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:10,height:10,borderRadius:2,background:T.green+'44',border:`1px solid ${T.green+'66'}`,display:'inline-block'}}/> Free</span>
+              <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{background:T.red+'22',color:T.red,borderRadius:3,padding:'0 4px',fontSize:10}}>n</span> Conflicts</span>
+              <span style={{display:'flex',alignItems:'center',gap:5,opacity:0.5}}>Weekends dimmed</span>
+            </div>
+          </div>
+
+          {/* Best picks list below grid */}
+          {data.freeDays.filter(x=>x.dow!==0&&x.dow!==6).length>0&&(
+            <div style={{marginTop:20}}>
+              <div style={{fontSize:11,letterSpacing:3,textTransform:'uppercase',color:T.text3,marginBottom:12}}>Top Picks (Weekdays)</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+                {data.freeDays.filter(x=>x.dow!==0&&x.dow!==6).slice(0,6).map(({d,dow,dateStr},idx)=>(
+                  <div key={dateStr} style={{background:idx===0?T.green+'11':T.bg1,border:`1px solid ${idx===0?T.green+'44':T.border}`,borderRadius:10,padding:'12px 10px',textAlign:'center'}}>
+                    {idx===0&&<div style={{fontSize:9,color:T.green,letterSpacing:1,textTransform:'uppercase',marginBottom:4}}>★ Best</div>}
+                    <div style={{fontSize:10,color:T.text3,letterSpacing:1}}>{DAY_F[dow].toUpperCase()}</div>
+                    <div style={{fontSize:24,color:idx===0?T.green:T.text,fontFamily:"'Cormorant Garamond',serif",lineHeight:1.1}}>{d}</div>
                     <div style={{fontSize:10,color:T.text3}}>{MONTHS[meeting.month-1].slice(0,3)}</div>
                   </div>
-                  <div style={{flex:1}}>
-                    {idx===0&&<span style={{background:T.gold,color:'#0c0a08',fontSize:10,padding:'2px 8px',borderRadius:4,letterSpacing:1,textTransform:'uppercase'}}>★ Top Pick</span>}
-                    <div style={{fontSize:13,color:T.green,marginTop:idx===0?6:0}}>All {data.total} members available ✓</div>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+          )}
+
+          {data.freeDays.filter(x=>x.dow!==0&&x.dow!==6).length===0&&(
+            <div style={{textAlign:'center',padding:'40px 20px',color:T.text2}}>
+              <div style={{fontSize:36,marginBottom:10}}>📭</div>
+              <div style={{fontSize:16,fontFamily:"'Cormorant Garamond',serif"}}>No fully free weekdays in {MONTHS[meeting.month-1]}</div>
+              <div style={{fontSize:12,color:T.text3,marginTop:6}}>Ask members to review their blocked dates</div>
             </div>
           )}
         </div>
       )}
-    </Modal>
+    </div>
   );
 }
 
@@ -833,6 +924,7 @@ function App(){
   const [profile,setProfile]=useState(null);
   const [loading,setLoading]=useState(true);
   const [meetingToken,setMeetingToken]=useState(null);
+  const [bestDatesMeeting,setBestDatesMeeting]=useState(null);
 
   // Check URL for meeting token
   useEffect(()=>{
@@ -880,7 +972,10 @@ function App(){
   // If opened via meeting link — show meeting page
   if(meetingToken)return<MeetingPage token={meetingToken} profile={profile} onBack={()=>setMeetingToken(null)}/>;
 
-  return<Dashboard profile={profile} onOpenMeeting={t=>setMeetingToken(t)}/>;
+  // Best dates full screen
+  if(bestDatesMeeting)return<BestDatesPage meeting={bestDatesMeeting} profile={profile} onBack={()=>setBestDatesMeeting(null)}/>;
+
+  return<Dashboard profile={profile} onOpenMeeting={t=>setMeetingToken(t)} onOpenBestDates={m=>setBestDatesMeeting(m)}/>;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
