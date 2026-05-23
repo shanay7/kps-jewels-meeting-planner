@@ -1,1 +1,782 @@
-<!-- placeholder -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>KPS Jewels · Meeting Planner</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body,#root{height:100%}
+    body{background:#0c0a08;font-family:'DM Sans',sans-serif;color:#f0ead8;-webkit-font-smoothing:antialiased}
+    button{cursor:pointer;font-family:inherit}
+    input,textarea,select{font-family:inherit}
+    button:focus,input:focus,textarea:focus,select:focus{outline:none}
+    ::-webkit-scrollbar{width:4px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:#3a3020;border-radius:2px}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .fade-up{animation:fadeUp 0.4s ease forwards}
+    .spin{animation:spin 0.8s linear infinite}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback, useMemo, useRef } = React;
+
+// ── Supabase ──────────────────────────────────────────────────────────────────
+const SUPABASE_URL = "https://bwwvbuwqdepqwqioemte.supabase.co";
+const SUPABASE_KEY = "sb_publishable_I40_asp5E8-tgOGGUUjLYA_UqnYLeFh";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAY_S  = ["S","M","T","W","T","F","S"];
+const DAY_F  = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function getDays(y,m){return new Date(y,m+1,0).getDate();}
+function getFirst(y,m){return new Date(y,m,1).getDay();}
+function fmtDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+
+const today = new Date();
+
+// ── Design tokens ─────────────────────────────────────────────────────────────
+const T = {
+  bg:     '#0c0a08',
+  bg1:    '#141210',
+  bg2:    '#1c1916',
+  bg3:    '#242018',
+  border: '#2e2a20',
+  border2:'#3e3a28',
+  gold:   '#c8a45a',
+  gold2:  '#e8c47a',
+  text:   '#f0ead8',
+  text2:  '#a09070',
+  text3:  '#605840',
+  green:  '#4a9a6a',
+  red:    '#c04040',
+  radius: '10px',
+};
+
+// ── Shared UI ─────────────────────────────────────────────────────────────────
+const Spinner = ({size=20,color=T.gold})=>(
+  <div className="spin" style={{width:size,height:size,border:`2px solid ${color}22`,borderTop:`2px solid ${color}`,borderRadius:'50%'}}/>
+);
+
+const Btn = ({children,onClick,variant='primary',disabled,loading,style={},...p})=>{
+  const styles = {
+    primary:{background:T.gold,color:'#0c0a08',border:'none',fontWeight:500},
+    secondary:{background:'transparent',color:T.text2,border:`1px solid ${T.border2}`},
+    ghost:{background:'transparent',color:T.text3,border:'none'},
+    danger:{background:'transparent',color:T.red,border:`1px solid ${T.red}44`},
+  };
+  return(
+    <button onClick={onClick} disabled={disabled||loading} {...p}
+      style={{...styles[variant],padding:'9px 20px',borderRadius:T.radius,fontSize:13,letterSpacing:'0.5px',display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'all 0.15s',opacity:disabled?0.5:1,...style}}>
+      {loading?<Spinner size={14} color={variant==='primary'?'#0c0a08':T.gold}/>:children}
+    </button>
+  );
+};
+
+const Input = ({label,error,...p})=>(
+  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+    {label&&<label style={{fontSize:11,letterSpacing:2,textTransform:'uppercase',color:T.text3}}>{label}</label>}
+    <input {...p} style={{background:T.bg2,border:`1px solid ${error?T.red:T.border}`,borderRadius:T.radius,padding:'10px 14px',color:T.text,fontSize:14,...p.style}}/>
+    {error&&<span style={{fontSize:11,color:T.red}}>{error}</span>}
+  </div>
+);
+
+const Card = ({children,style={}})=>(
+  <div style={{background:T.bg1,border:`1px solid ${T.border}`,borderRadius:12,...style}}>{children}</div>
+);
+
+const Modal = ({title,children,onClose,width=440})=>(
+  <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:20}}>
+    <div className="fade-up" style={{background:T.bg1,border:`1px solid ${T.border2}`,borderRadius:14,width:'100%',maxWidth:width,maxHeight:'90vh',overflow:'auto'}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 20px',borderBottom:`1px solid ${T.border}`}}>
+        <span style={{fontSize:16,color:T.text,fontFamily:"'Cormorant Garamond',serif",fontWeight:500}}>{title}</span>
+        <button onClick={onClose} style={{background:'none',border:'none',color:T.text3,fontSize:20,lineHeight:1}}>×</button>
+      </div>
+      <div style={{padding:20}}>{children}</div>
+    </div>
+  </div>
+);
+
+const Toast = ({msg,type='success'})=>(
+  msg?<div style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',background:type==='success'?T.green:T.red,color:'#fff',padding:'10px 20px',borderRadius:20,fontSize:13,zIndex:2000,boxShadow:'0 4px 20px rgba(0,0,0,0.4)'}}>{msg}</div>:null
+);
+
+// ── Calendar component ────────────────────────────────────────────────────────
+function CalendarPicker({year,month,busyDates,onToggle,conflictMap={},readOnly=false}){
+  const first=getFirst(year,month), days=getDays(year,month);
+  const cells=useMemo(()=>{
+    const c=[...Array(first).fill(null),...Array.from({length:days},(_,i)=>i+1)];
+    while(c.length%7)c.push(null);
+    return c.map((d,i)=>({d,key:d?`d${d}`:`e${i}`}));
+  },[year,month]);
+
+  function prevM(){} // handled by parent
+  return(
+    <div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',marginBottom:6}}>
+        {DAY_S.map((d,i)=><div key={i} style={{textAlign:'center',fontSize:10,color:T.text3,padding:'4px 0',letterSpacing:1}}>{d}</div>)}
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:3}}>
+        {cells.map(({d,key})=>{
+          if(!d)return<div key={key}/>;
+          const dateStr=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const busy=busyDates.includes(dateStr);
+          const conflicts=conflictMap[dateStr]||0;
+          const isToday=year===today.getFullYear()&&month===today.getMonth()&&d===today.getDate();
+          return(
+            <button key={key} onClick={()=>!readOnly&&onToggle(dateStr)}
+              style={{background:busy?T.gold:T.bg2,border:`1.5px solid ${busy?T.gold:isToday?T.gold+'88':T.border}`,borderRadius:8,padding:'6px 2px',minHeight:48,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,transition:'all 0.12s',cursor:readOnly?'default':'pointer'}}>
+              <span style={{fontSize:13,color:busy?'#0c0a08':isToday?T.gold:T.text,fontWeight:isToday?600:400}}>{d}</span>
+              {busy&&<span style={{fontSize:8,color:'#0c0a08',opacity:0.7}}>busy</span>}
+              {!busy&&conflicts>0&&<span style={{fontSize:9,background:T.red+'33',color:T.red,borderRadius:3,padding:'0 3px'}}>{conflicts}</span>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── AUTH SCREEN ───────────────────────────────────────────────────────────────
+function AuthScreen({onAuth}){
+  const [mode,setMode]=useState('login');
+  const [email,setEmail]=useState('');
+  const [password,setPassword]=useState('');
+  const [name,setName]=useState('');
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState('');
+
+  async function handleSubmit(){
+    setLoading(true);setError('');
+    if(mode==='login'){
+      const{error:e}=await sb.auth.signInWithPassword({email,password});
+      if(e)setError(e.message);
+    } else {
+      const{error:e}=await sb.auth.signUp({email,password,options:{data:{full_name:name}}});
+      if(e)setError(e.message);
+      else setMode('login'),setError('Account created! Please log in.');
+    }
+    setLoading(false);
+  }
+
+  return(
+    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,background:T.bg}}>
+      <div className="fade-up" style={{width:'100%',maxWidth:380}}>
+        {/* Logo */}
+        <div style={{textAlign:'center',marginBottom:40}}>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:11,letterSpacing:6,textTransform:'uppercase',color:T.text3,marginBottom:8}}>KPS Jewels</div>
+          <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontWeight:300,color:T.text,letterSpacing:1}}>Meeting Planner</h1>
+          <div style={{width:40,height:1,background:T.gold,margin:'12px auto 0'}}/>
+        </div>
+        <Card style={{padding:28}}>
+          <div style={{display:'flex',gap:0,marginBottom:24,background:T.bg2,borderRadius:8,padding:3}}>
+            {['login','signup'].map(m=>(
+              <button key={m} onClick={()=>{setMode(m);setError('');}}
+                style={{flex:1,padding:'8px',borderRadius:6,border:'none',background:mode===m?T.bg3:'transparent',color:mode===m?T.text:T.text3,fontSize:12,letterSpacing:1,textTransform:'uppercase',transition:'all 0.15s'}}>
+                {m==='login'?'Sign In':'Sign Up'}
+              </button>
+            ))}
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:14}}>
+            {mode==='signup'&&<Input label="Full Name" value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name"/>}
+            <Input label="Email" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="your@email.com"/>
+            <Input label="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"
+              onKeyDown={e=>e.key==='Enter'&&handleSubmit()}/>
+            {error&&<div style={{fontSize:12,color:error.includes('created')?T.green:T.red,padding:'8px 12px',background:error.includes('created')?T.green+'11':T.red+'11',borderRadius:6}}>{error}</div>}
+            <Btn onClick={handleSubmit} loading={loading} style={{marginTop:4,padding:'12px',fontSize:13,letterSpacing:1}}>
+              {mode==='login'?'Sign In':'Create Account'}
+            </Btn>
+          </div>
+        </Card>
+        <p style={{textAlign:'center',fontSize:12,color:T.text3,marginTop:16}}>
+          {mode==='login'?'New here? ':'Already have an account? '}
+          <button onClick={()=>{setMode(mode==='login'?'signup':'login');setError('');}}
+            style={{background:'none',border:'none',color:T.gold,fontSize:12,cursor:'pointer'}}>{mode==='login'?'Sign up':'Sign in'}</button>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── MEETING PAGE (member marks availability) ──────────────────────────────────
+function MeetingPage({token,profile,onBack}){
+  const [meeting,setMeeting]=useState(null);
+  const [members,setMembers]=useState([]);
+  const [myBusy,setMyBusy]=useState([]);
+  const [allBusy,setAllBusy]=useState({});
+  const [submitted,setSubmitted]=useState(false);
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [toast,setToast]=useState('');
+  const [calYear,setCalYear]=useState(today.getFullYear());
+  const [calMonth,setCalMonth]=useState(today.getMonth());
+
+  function showToast(msg,type='success'){setToast({msg,type});setTimeout(()=>setToast(''),2500);}
+
+  useEffect(()=>{loadMeeting();},[token]);
+
+  async function loadMeeting(){
+    setLoading(true);
+    // Load meeting by token
+    const{data:m,error:me}=await sb.from('meetings').select('*').eq('share_token',token).single();
+    if(me||!m){setLoading(false);return;}
+    setMeeting(m);
+    setCalYear(m.year);
+    setCalMonth(m.month-1);
+
+    // Auto-add member if not already added
+    await sb.from('meeting_members').upsert({meeting_id:m.id,profile_id:profile.id},{onConflict:'meeting_id,profile_id'});
+
+    // Load all members
+    const{data:mems}=await sb.from('meeting_members').select('profile_id, profiles(full_name,email)').eq('meeting_id',m.id);
+    setMembers(mems||[]);
+
+    // Load my busy dates
+    const{data:myA}=await sb.from('availability').select('busy_date').eq('meeting_id',m.id).eq('profile_id',profile.id);
+    setMyBusy((myA||[]).map(r=>r.busy_date));
+
+    // Load all busy dates for conflict display
+    const{data:allA}=await sb.from('availability').select('busy_date,profile_id').eq('meeting_id',m.id);
+    const map={};
+    (allA||[]).forEach(r=>{map[r.busy_date]=(map[r.busy_date]||0)+1;});
+    setAllBusy(map);
+
+    // Check if submitted
+    const{data:sub}=await sb.from('submissions').select('id').eq('meeting_id',m.id).eq('profile_id',profile.id).single();
+    setSubmitted(!!sub);
+    setLoading(false);
+  }
+
+  async function toggleDate(dateStr){
+    const busy=myBusy.includes(dateStr);
+    // Optimistic update
+    setMyBusy(prev=>busy?prev.filter(d=>d!==dateStr):[...prev,dateStr]);
+    setAllBusy(prev=>({...prev,[dateStr]:(prev[dateStr]||0)+(busy?-1:1)}));
+    if(busy){
+      await sb.from('availability').delete().eq('meeting_id',meeting.id).eq('profile_id',profile.id).eq('busy_date',dateStr);
+    } else {
+      await sb.from('availability').upsert({meeting_id:meeting.id,profile_id:profile.id,busy_date:dateStr},{onConflict:'meeting_id,profile_id,busy_date'});
+    }
+  }
+
+  async function handleSubmit(){
+    setSaving(true);
+    await sb.from('submissions').upsert({meeting_id:meeting.id,profile_id:profile.id},{onConflict:'meeting_id,profile_id'});
+    setSubmitted(true);
+    showToast('Availability submitted ✓');
+    setSaving(false);
+  }
+
+  if(loading)return<div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:T.bg}}><Spinner size={32}/></div>;
+  if(!meeting)return<div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:T.bg,color:T.text2}}>Meeting not found or link is invalid.</div>;
+
+  const totalMembers=members.length;
+  const submittedCount=0; // would need extra query
+
+  return(
+    <div style={{minHeight:'100vh',background:T.bg}}>
+      {/* Header */}
+      <div style={{background:T.bg1,borderBottom:`1px solid ${T.border}`,padding:'0 20px',height:52,display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
+        <div>
+          <div style={{fontSize:10,letterSpacing:3,textTransform:'uppercase',color:T.text3}}>KPS Jewels · Meeting Planner</div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <span style={{fontSize:12,color:T.text3}}>{profile.full_name}</span>
+          <button onClick={()=>sb.auth.signOut()} style={{background:'none',border:`1px solid ${T.border}`,borderRadius:6,padding:'4px 10px',color:T.text3,fontSize:11}}>Sign out</button>
+        </div>
+      </div>
+
+      <div style={{maxWidth:520,margin:'0 auto',padding:'28px 16px 80px'}}>
+        {/* Meeting info */}
+        <div className="fade-up" style={{marginBottom:24}}>
+          <div style={{fontSize:11,letterSpacing:3,textTransform:'uppercase',color:T.gold,marginBottom:6}}>Meeting</div>
+          <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:400,color:T.text,marginBottom:4}}>{meeting.title}</h2>
+          {meeting.description&&<p style={{fontSize:13,color:T.text2,lineHeight:1.6}}>{meeting.description}</p>}
+          <div style={{fontSize:12,color:T.text3,marginTop:8}}>{MONTHS[meeting.month-1]} {meeting.year}</div>
+        </div>
+
+        {/* Status */}
+        {submitted&&(
+          <div style={{background:T.green+'11',border:`1px solid ${T.green}33`,borderRadius:10,padding:'12px 16px',marginBottom:20,fontSize:13,color:T.green}}>
+            ✓ You've submitted your availability. You can still update your dates below.
+          </div>
+        )}
+
+        {/* Instruction */}
+        <div style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:10,padding:'11px 14px',marginBottom:20,fontSize:12,color:T.text2,lineHeight:1.6}}>
+          Tap dates you <strong style={{color:T.text}}>cannot attend</strong>. If you're free all month, just tap Submit.
+        </div>
+
+        {/* Month nav */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+          <button onClick={()=>calMonth===0?(setCalMonth(11),setCalYear(y=>y-1)):setCalMonth(m=>m-1)}
+            style={{background:T.bg2,border:`1px solid ${T.border}`,color:T.text2,width:34,height:34,borderRadius:8,fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>
+          <span style={{fontSize:16,color:T.text}}>{MONTHS[calMonth]} {calYear}</span>
+          <button onClick={()=>calMonth===11?(setCalMonth(0),setCalYear(y=>y+1)):setCalMonth(m=>m+1)}
+            style={{background:T.bg2,border:`1px solid ${T.border}`,color:T.text2,width:34,height:34,borderRadius:8,fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>
+        </div>
+
+        <CalendarPicker year={calYear} month={calMonth} busyDates={myBusy} onToggle={toggleDate} conflictMap={allBusy}/>
+
+        <div style={{marginTop:12,display:'flex',gap:16,fontSize:11,color:T.text3}}>
+          <span style={{display:'flex',alignItems:'center',gap:4}}><span style={{width:10,height:10,borderRadius:2,background:T.gold,display:'inline-block'}}/>Your busy date</span>
+          <span style={{display:'flex',alignItems:'center',gap:4}}><span style={{background:T.red+'33',color:T.red,borderRadius:3,padding:'0 4px',fontSize:10}}>n</span>others busy</span>
+        </div>
+
+        <Btn onClick={handleSubmit} loading={saving} style={{width:'100%',marginTop:24,padding:'14px',fontSize:13,letterSpacing:1}}>
+          {submitted?'Update Submission':'Submit Availability'}
+        </Btn>
+      </div>
+      <Toast msg={toast.msg} type={toast.type}/>
+    </div>
+  );
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+function Dashboard({profile,onOpenMeeting}){
+  const [meetings,setMeetings]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [showCreate,setShowCreate]=useState(false);
+  const [showSuperAdmin,setShowSuperAdmin]=useState(false);
+  const isSuperAdmin=profile.is_super_admin;
+
+  useEffect(()=>{loadMeetings();},[]);
+
+  async function loadMeetings(){
+    setLoading(true);
+    const{data}=await sb.from('meetings').select('*,departments(name)').order('created_at',{ascending:false});
+    setMeetings(data||[]);
+    setLoading(false);
+  }
+
+  return(
+    <div style={{minHeight:'100vh',background:T.bg}}>
+      {/* Header */}
+      <div style={{background:T.bg1,borderBottom:`1px solid ${T.border}`,padding:'0 20px',height:54,display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
+        <div>
+          <div style={{fontSize:10,letterSpacing:3,textTransform:'uppercase',color:T.text3}}>KPS Jewels</div>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,color:T.text,letterSpacing:0.5}}>Meeting Planner</div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          {isSuperAdmin&&<Btn variant="ghost" onClick={()=>setShowSuperAdmin(true)} style={{fontSize:18,padding:'4px 8px'}}>⚙</Btn>}
+          <div style={{fontSize:12,color:T.text3,padding:'4px 10px',border:`1px solid ${T.border}`,borderRadius:6}}>{profile.full_name}</div>
+          <Btn variant="ghost" onClick={()=>sb.auth.signOut()} style={{fontSize:12,padding:'4px 10px',color:T.text3}}>Sign out</Btn>
+        </div>
+      </div>
+
+      <div style={{maxWidth:640,margin:'0 auto',padding:'28px 18px 80px'}}>
+        <div className="fade-up" style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:28}}>
+          <div>
+            <div style={{fontSize:11,letterSpacing:3,textTransform:'uppercase',color:T.text3,marginBottom:6}}>Welcome back</div>
+            <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:400,color:T.text}}>{profile.full_name}</h1>
+          </div>
+          {(isSuperAdmin||true)&&<Btn onClick={()=>setShowCreate(true)}>+ New Meeting</Btn>}
+        </div>
+
+        {loading?(
+          <div style={{display:'flex',justifyContent:'center',padding:40}}><Spinner/></div>
+        ):meetings.length===0?(
+          <Card style={{padding:48,textAlign:'center'}}>
+            <div style={{fontSize:36,marginBottom:12}}>📅</div>
+            <div style={{fontSize:16,color:T.text2,fontFamily:"'Cormorant Garamond',serif"}}>No meetings yet</div>
+            <div style={{fontSize:13,color:T.text3,marginTop:6}}>Create your first meeting to get started</div>
+          </Card>
+        ):(
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            {meetings.map(m=>(
+              <MeetingCard key={m.id} meeting={m} profile={profile} onOpenMeeting={onOpenMeeting} onRefresh={loadMeetings}/>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {showCreate&&<CreateMeetingModal profile={profile} onClose={()=>setShowCreate(false)} onCreated={()=>{setShowCreate(false);loadMeetings();}}/>}
+      {showSuperAdmin&&<SuperAdminModal profile={profile} onClose={()=>setShowSuperAdmin(false)}/>}
+    </div>
+  );
+}
+
+// ── MEETING CARD ──────────────────────────────────────────────────────────────
+function MeetingCard({meeting,profile,onOpenMeeting,onRefresh}){
+  const [stats,setStats]=useState(null);
+  const [showDetails,setShowDetails]=useState(false);
+  const [copied,setCopied]=useState(false);
+  const shareUrl=`${window.location.origin}${window.location.pathname}?m=${meeting.share_token}`;
+
+  useEffect(()=>{loadStats();},[]);
+
+  async function loadStats(){
+    const[{data:members},{data:subs}]=await Promise.all([
+      sb.from('meeting_members').select('profile_id').eq('meeting_id',meeting.id),
+      sb.from('submissions').select('profile_id').eq('meeting_id',meeting.id),
+    ]);
+    setStats({total:(members||[]).length,submitted:(subs||[]).length});
+  }
+
+  function copyLink(){
+    navigator.clipboard.writeText(shareUrl);
+    setCopied(true);setTimeout(()=>setCopied(false),2000);
+  }
+
+  return(
+    <Card style={{padding:0,overflow:'hidden'}}>
+      <div style={{padding:'16px 18px'}}>
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,color:T.text3,letterSpacing:1,textTransform:'uppercase',marginBottom:4}}>{meeting.departments?.name||'—'} · {MONTHS[meeting.month-1]} {meeting.year}</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,color:T.text,marginBottom:4}}>{meeting.title}</div>
+            {meeting.description&&<div style={{fontSize:12,color:T.text2,lineHeight:1.5}}>{meeting.description}</div>}
+          </div>
+          {stats&&(
+            <div style={{textAlign:'right',flexShrink:0}}>
+              <div style={{fontSize:20,color:stats.submitted===stats.total&&stats.total>0?T.green:T.text}}>{stats.submitted}/{stats.total}</div>
+              <div style={{fontSize:10,color:T.text3,letterSpacing:1}}>SUBMITTED</div>
+            </div>
+          )}
+        </div>
+        {stats&&stats.total>0&&(
+          <div style={{height:3,background:T.bg3,borderRadius:2,marginTop:12}}>
+            <div style={{width:`${(stats.submitted/stats.total)*100}%`,height:'100%',background:T.gold,borderRadius:2,transition:'width 0.5s'}}/>
+          </div>
+        )}
+      </div>
+      <div style={{borderTop:`1px solid ${T.border}`,padding:'10px 18px',display:'flex',gap:8}}>
+        <Btn variant="secondary" onClick={()=>onOpenMeeting(meeting.share_token)} style={{fontSize:12,padding:'7px 14px'}}>Mark My Dates</Btn>
+        <Btn variant="secondary" onClick={copyLink} style={{fontSize:12,padding:'7px 14px'}}>{copied?'Copied ✓':'Copy Link'}</Btn>
+        <Btn variant="secondary" onClick={()=>setShowDetails(true)} style={{fontSize:12,padding:'7px 14px'}}>Best Dates</Btn>
+      </div>
+      {showDetails&&<MeetingDetailsModal meeting={meeting} onClose={()=>setShowDetails(false)}/>}
+    </Card>
+  );
+}
+
+// ── BEST DATES MODAL ──────────────────────────────────────────────────────────
+function MeetingDetailsModal({meeting,onClose}){
+  const [data,setData]=useState(null);
+  const [loading,setLoading]=useState(true);
+
+  useEffect(()=>{loadData();},[]);
+
+  async function loadData(){
+    const[{data:members},{data:avail},{data:subs}]=await Promise.all([
+      sb.from('meeting_members').select('profile_id,profiles(full_name)').eq('meeting_id',meeting.id),
+      sb.from('availability').select('busy_date,profile_id').eq('meeting_id',meeting.id),
+      sb.from('submissions').select('profile_id,profiles(full_name)').eq('meeting_id',meeting.id),
+    ]);
+    // Count conflicts per date
+    const conflictMap={};
+    (avail||[]).forEach(r=>{conflictMap[r.busy_date]=(conflictMap[r.busy_date]||0)+1;});
+    const total=(members||[]).length;
+    // Build best dates: all must be free
+    const days=getDays(meeting.year,meeting.month-1);
+    const best=[];
+    for(let d=1;d<=days;d++){
+      const dateStr=`${meeting.year}-${String(meeting.month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const dow=new Date(meeting.year,meeting.month-1,d).getDay();
+      if((conflictMap[dateStr]||0)===0) best.push({d,dow,dateStr});
+    }
+    // Pending members
+    const subIds=new Set((subs||[]).map(s=>s.profile_id));
+    const pending=(members||[]).filter(m=>!subIds.has(m.profile_id)).map(m=>m.profiles?.full_name||'—');
+    setData({members,total,best,pending,subs:subs||[]});
+    setLoading(false);
+  }
+
+  return(
+    <Modal title={`Best Dates — ${meeting.title}`} onClose={onClose} width={500}>
+      {loading?<div style={{display:'flex',justifyContent:'center',padding:32}}><Spinner/></div>:(
+        <div>
+          {data.pending.length>0&&(
+            <div style={{background:'#c8a45a11',border:'1px solid #c8a45a33',borderRadius:8,padding:'10px 14px',marginBottom:16,fontSize:12,color:T.text2}}>
+              ⏳ <strong style={{color:T.text}}>{data.pending.length} member{data.pending.length>1?'s':''}</strong> haven't submitted yet: {data.pending.slice(0,4).join(', ')}{data.pending.length>4?` +${data.pending.length-4} more`:''}
+            </div>
+          )}
+          <div style={{fontSize:12,color:T.text3,marginBottom:14}}>Showing dates where all {data.total} members are free</div>
+          {data.best.length===0?(
+            <div style={{textAlign:'center',padding:32,color:T.text2}}>
+              <div style={{fontSize:32,marginBottom:8}}>📭</div>
+              No fully free dates in {MONTHS[meeting.month-1]} {meeting.year}
+            </div>
+          ):(
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {data.best.map(({d,dow,dateStr},idx)=>(
+                <div key={dateStr} style={{background:idx===0?T.gold+'11':T.bg2,border:`1px solid ${idx===0?T.gold+'44':T.border}`,borderRadius:10,padding:'14px 16px',display:'flex',alignItems:'center',gap:14}}>
+                  <div style={{textAlign:'center',minWidth:48}}>
+                    <div style={{fontSize:10,color:T.text3,textTransform:'uppercase',letterSpacing:1}}>{DAY_F[dow]}</div>
+                    <div style={{fontSize:28,color:idx===0?T.gold:T.text,lineHeight:1.1}}>{d}</div>
+                    <div style={{fontSize:10,color:T.text3}}>{MONTHS[meeting.month-1].slice(0,3)}</div>
+                  </div>
+                  <div style={{flex:1}}>
+                    {idx===0&&<span style={{background:T.gold,color:'#0c0a08',fontSize:10,padding:'2px 8px',borderRadius:4,letterSpacing:1,textTransform:'uppercase'}}>★ Top Pick</span>}
+                    <div style={{fontSize:13,color:T.green,marginTop:idx===0?6:0}}>All {data.total} members available ✓</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+// ── CREATE MEETING MODAL ──────────────────────────────────────────────────────
+function CreateMeetingModal({profile,onClose,onCreated}){
+  const [depts,setDepts]=useState([]);
+  const [title,setTitle]=useState('');
+  const [desc,setDesc]=useState('');
+  const [deptId,setDeptId]=useState('');
+  const [month,setMonth]=useState(today.getMonth()+1);
+  const [year,setYear]=useState(today.getFullYear());
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState('');
+
+  useEffect(()=>{
+    sb.from('departments').select('*').then(({data})=>{
+      setDepts(data||[]);
+      if(data&&data.length>0)setDeptId(data[0].id);
+    });
+  },[]);
+
+  async function create(){
+    if(!title.trim())return setError('Meeting title is required');
+    if(!deptId)return setError('Please select a department');
+    setLoading(true);setError('');
+    const{data,error:e}=await sb.from('meetings').insert({
+      title:title.trim(),description:desc.trim()||null,
+      department_id:deptId,month,year,created_by:profile.id
+    }).select().single();
+    if(e){setError(e.message);setLoading(false);return;}
+    // Auto-add creator as member
+    await sb.from('meeting_members').insert({meeting_id:data.id,profile_id:profile.id});
+    onCreated(data);
+  }
+
+  return(
+    <Modal title="Create New Meeting" onClose={onClose}>
+      <div style={{display:'flex',flexDirection:'column',gap:14}}>
+        <Input label="Meeting Title" value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Monthly Review, Design Planning…"/>
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          <label style={{fontSize:11,letterSpacing:2,textTransform:'uppercase',color:T.text3}}>Description (optional)</label>
+          <textarea value={desc} onChange={e=>setDesc(e.target.value)} rows={2}
+            style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:T.radius,padding:'10px 14px',color:T.text,fontSize:14,resize:'vertical'}}/>
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          <label style={{fontSize:11,letterSpacing:2,textTransform:'uppercase',color:T.text3}}>Department</label>
+          <select value={deptId} onChange={e=>setDeptId(e.target.value)}
+            style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:T.radius,padding:'10px 14px',color:T.text,fontSize:14}}>
+            {depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            <label style={{fontSize:11,letterSpacing:2,textTransform:'uppercase',color:T.text3}}>Month</label>
+            <select value={month} onChange={e=>setMonth(Number(e.target.value))}
+              style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:T.radius,padding:'10px 14px',color:T.text,fontSize:14}}>
+              {MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}
+            </select>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            <label style={{fontSize:11,letterSpacing:2,textTransform:'uppercase',color:T.text3}}>Year</label>
+            <select value={year} onChange={e=>setYear(Number(e.target.value))}
+              style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:T.radius,padding:'10px 14px',color:T.text,fontSize:14}}>
+              {[2025,2026,2027,2028].map(y=><option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+        </div>
+        {error&&<div style={{fontSize:12,color:T.red,padding:'8px 12px',background:T.red+'11',borderRadius:6}}>{error}</div>}
+        <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:4}}>
+          <Btn variant="secondary" onClick={onClose}>Cancel</Btn>
+          <Btn onClick={create} loading={loading}>Create Meeting</Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ── SUPER ADMIN MODAL ─────────────────────────────────────────────────────────
+function SuperAdminModal({profile,onClose}){
+  const [tab,setTab]=useState('users');
+  const [users,setUsers]=useState([]);
+  const [depts,setDepts]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [newDept,setNewDept]=useState('');
+  const [toast,setToast]=useState('');
+
+  function showToast(msg){setToast({msg});setTimeout(()=>setToast(''),2000);}
+
+  useEffect(()=>{loadAll();},[]);
+
+  async function loadAll(){
+    setLoading(true);
+    const[{data:u},{data:d}]=await Promise.all([
+      sb.from('profiles').select('*').order('full_name'),
+      sb.from('departments').select('*,department_admins(profile_id,profiles(full_name))').order('name'),
+    ]);
+    setUsers(u||[]);setDepts(d||[]);
+    setLoading(false);
+  }
+
+  async function toggleSuperAdmin(u){
+    await sb.from('profiles').update({is_super_admin:!u.is_super_admin}).eq('id',u.id);
+    setUsers(prev=>prev.map(x=>x.id===u.id?{...x,is_super_admin:!x.is_super_admin}:x));
+    showToast(`${u.full_name} ${!u.is_super_admin?'is now':'is no longer'} a super admin`);
+  }
+
+  async function addDept(){
+    if(!newDept.trim())return;
+    const{data}=await sb.from('departments').insert({name:newDept.trim(),created_by:profile.id}).select().single();
+    if(data){setDepts(prev=>[...prev,{...data,department_admins:[]}]);setNewDept('');}
+  }
+
+  async function toggleDeptAdmin(deptId,userId,isAdmin){
+    if(isAdmin){
+      await sb.from('department_admins').delete().eq('department_id',deptId).eq('profile_id',userId);
+    } else {
+      await sb.from('department_admins').insert({department_id:deptId,profile_id:userId});
+    }
+    loadAll();
+  }
+
+  return(
+    <Modal title="Super Admin Panel" onClose={onClose} width={560}>
+      {/* Tabs */}
+      <div style={{display:'flex',gap:0,marginBottom:20,background:T.bg2,borderRadius:8,padding:3}}>
+        {['users','departments'].map(t=>(
+          <button key={t} onClick={()=>setTab(t)}
+            style={{flex:1,padding:'8px',borderRadius:6,border:'none',background:tab===t?T.bg3:'transparent',color:tab===t?T.text:T.text3,fontSize:12,letterSpacing:1,textTransform:'uppercase',transition:'all 0.15s'}}>
+            {t}
+          </button>
+        ))}
+      </div>
+      {loading?<div style={{display:'flex',justifyContent:'center',padding:24}}><Spinner/></div>:(
+        <>
+          {tab==='users'&&(
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              <div style={{fontSize:11,color:T.text3,marginBottom:4}}>Toggle super admin access for any user</div>
+              {users.map(u=>(
+                <div key={u.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',background:T.bg2,borderRadius:8}}>
+                  <div>
+                    <div style={{fontSize:14,color:T.text}}>{u.full_name}</div>
+                    <div style={{fontSize:11,color:T.text3}}>{u.email}</div>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    {u.is_super_admin&&<span style={{fontSize:10,color:T.gold,letterSpacing:1}}>SUPER ADMIN</span>}
+                    {u.id!==profile.id&&(
+                      <Btn variant={u.is_super_admin?'danger':'secondary'} onClick={()=>toggleSuperAdmin(u)} style={{fontSize:11,padding:'5px 12px'}}>
+                        {u.is_super_admin?'Revoke':'Promote'}
+                      </Btn>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {tab==='departments'&&(
+            <div>
+              <div style={{display:'flex',gap:8,marginBottom:16}}>
+                <Input value={newDept} onChange={e=>setNewDept(e.target.value)} placeholder="New department name…" style={{flex:1}} onKeyDown={e=>e.key==='Enter'&&addDept()}/>
+                <Btn onClick={addDept} style={{whiteSpace:'nowrap'}}>Add</Btn>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                {depts.map(d=>{
+                  const adminIds=new Set((d.department_admins||[]).map(a=>a.profile_id));
+                  return(
+                    <div key={d.id} style={{background:T.bg2,borderRadius:10,padding:'14px'}}>
+                      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:T.text,marginBottom:10}}>{d.name}</div>
+                      <div style={{fontSize:11,color:T.text3,marginBottom:8,letterSpacing:1,textTransform:'uppercase'}}>Department Admins</div>
+                      <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                        {users.map(u=>(
+                          <div key={u.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                            <span style={{fontSize:13,color:adminIds.has(u.id)?T.text:T.text2}}>{u.full_name}</span>
+                            <button onClick={()=>toggleDeptAdmin(d.id,u.id,adminIds.has(u.id))}
+                              style={{background:adminIds.has(u.id)?T.gold+'22':'transparent',border:`1px solid ${adminIds.has(u.id)?T.gold+'44':T.border}`,borderRadius:6,padding:'3px 10px',color:adminIds.has(u.id)?T.gold:T.text3,fontSize:11,cursor:'pointer'}}>
+                              {adminIds.has(u.id)?'✓ Admin':'Set Admin'}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+      <Toast msg={toast.msg}/>
+    </Modal>
+  );
+}
+
+// ── ROOT APP ──────────────────────────────────────────────────────────────────
+function App(){
+  const [session,setSession]=useState(null);
+  const [profile,setProfile]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [meetingToken,setMeetingToken]=useState(null);
+
+  // Check URL for meeting token
+  useEffect(()=>{
+    const params=new URLSearchParams(window.location.search);
+    const m=params.get('m');
+    if(m)setMeetingToken(m);
+  },[]);
+
+  useEffect(()=>{
+    sb.auth.getSession().then(({data:{session}})=>{
+      setSession(session);
+      if(session)loadProfile(session.user.id);
+      else setLoading(false);
+    });
+    const{data:{subscription}}=sb.auth.onAuthStateChange((_,session)=>{
+      setSession(session);
+      if(session)loadProfile(session.user.id);
+      else{setProfile(null);setLoading(false);}
+    });
+    return()=>subscription.unsubscribe();
+  },[]);
+
+  async function loadProfile(uid){
+    setLoading(true);
+    const{data}=await sb.from('profiles').select('*').eq('id',uid).single();
+    // Auto-promote sanghvishanay7@gmail.com to super admin
+    if(data&&data.email==='sanghvishanay7@gmail.com'&&!data.is_super_admin){
+      await sb.from('profiles').update({is_super_admin:true}).eq('id',uid);
+      data.is_super_admin=true;
+    }
+    setProfile(data);
+    setLoading(false);
+  }
+
+  if(loading)return(
+    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:T.bg,gap:16}}>
+      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,color:T.text2,letterSpacing:2}}>KPS Jewels · Meeting Planner</div>
+      <Spinner size={28}/>
+    </div>
+  );
+
+  if(!session)return<AuthScreen onAuth={setSession}/>;
+  if(!profile)return<div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:T.bg}}><Spinner size={32}/></div>;
+
+  // If opened via meeting link — show meeting page
+  if(meetingToken)return<MeetingPage token={meetingToken} profile={profile} onBack={()=>setMeetingToken(null)}/>;
+
+  return<Dashboard profile={profile} onOpenMeeting={t=>setMeetingToken(t)}/>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
