@@ -2327,14 +2327,15 @@ function DeptAdminModal(_ref23) {
     setLoading(false);
   }
   async function toggleMember(deptId, userId, isMember) {
-    if (isMember) {
-      await sb.from('department_members').delete().eq('department_id', deptId).eq('profile_id', userId);
-    } else {
-      await sb.from('department_members').insert({
-        department_id: deptId,
-        profile_id: userId,
-        added_by: profile.id
-      });
+    const _await$sb$rpc = await sb.rpc('set_dept_member', {
+        dept_id: deptId,
+        target_id: userId,
+        value: !isMember
+      }),
+      e = _await$sb$rpc.error;
+    if (e) {
+      showToast('Error: ' + e.message, 'error');
+      return;
     }
     showToast(isMember ? 'Member removed' : 'Member added');
     load();
@@ -2490,11 +2491,11 @@ function SuperAdminModal(_ref24) {
 
   // Use the set_super_admin RPC to bypass RLS
   async function toggleSuperAdmin(u) {
-    const _await$sb$rpc = await sb.rpc('set_super_admin', {
+    const _await$sb$rpc2 = await sb.rpc('set_super_admin', {
         target_id: u.id,
         value: !u.is_super_admin
       }),
-      e = _await$sb$rpc.error;
+      e = _await$sb$rpc2.error;
     if (e) {
       showToast('Error: ' + e.message, 'error');
       return;
@@ -2507,29 +2508,45 @@ function SuperAdminModal(_ref24) {
   }
   async function addDept() {
     if (!newDept.trim()) return;
-    const _await$sb$from$insert2 = await sb.from('departments').insert({
-        name: newDept.trim(),
-        created_by: profile.id
-      }).select().single(),
-      data = _await$sb$from$insert2.data;
-    if (data) {
-      setNewDept('');
-      loadAll();
+    const _await$sb$rpc3 = await sb.rpc('add_department', {
+        dept_name: newDept.trim()
+      }),
+      data = _await$sb$rpc3.data,
+      e = _await$sb$rpc3.error;
+    if (e) {
+      showToast('Error: ' + e.message, 'error');
+      return;
     }
+    setNewDept('');
+    loadAll();
+    showToast('Department added ✓');
   }
   async function toggleDeptAdmin(deptId, userId, isAdmin) {
-    if (isAdmin) await sb.from('department_admins').delete().eq('department_id', deptId).eq('profile_id', userId);else await sb.from('department_admins').insert({
-      department_id: deptId,
-      profile_id: userId
-    });
+    const _await$sb$rpc4 = await sb.rpc('set_dept_admin', {
+        dept_id: deptId,
+        target_id: userId,
+        value: !isAdmin
+      }),
+      e = _await$sb$rpc4.error;
+    if (e) {
+      showToast('Error: ' + e.message, 'error');
+      return;
+    }
+    showToast(isAdmin ? 'Admin removed' : 'Admin assigned');
     loadAll();
   }
   async function toggleDeptMember(deptId, userId, isMember) {
-    if (isMember) await sb.from('department_members').delete().eq('department_id', deptId).eq('profile_id', userId);else await sb.from('department_members').insert({
-      department_id: deptId,
-      profile_id: userId,
-      added_by: profile.id
-    });
+    const _await$sb$rpc5 = await sb.rpc('set_dept_member', {
+        dept_id: deptId,
+        target_id: userId,
+        value: !isMember
+      }),
+      e = _await$sb$rpc5.error;
+    if (e) {
+      showToast('Error: ' + e.message, 'error');
+      return;
+    }
+    showToast(isMember ? 'Member removed' : 'Member added');
     loadAll();
   }
   async function deleteUser(u) {
@@ -2830,12 +2847,12 @@ function InviteTab(_ref27) {
     setGenerating(true);
     await sb.from('invite_codes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     const code = Math.random().toString(36).slice(2, 10).toUpperCase();
-    const _await$sb$from$insert3 = await sb.from('invite_codes').insert({
+    const _await$sb$from$insert2 = await sb.from('invite_codes').insert({
         code,
         created_by: profile.id,
         expires_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
       }).select().single(),
-      data = _await$sb$from$insert3.data;
+      data = _await$sb$from$insert2.data;
     setActiveCode(data);
     setGenerating(false);
     showToast('New invite link generated ✓');
