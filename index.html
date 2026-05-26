@@ -2455,18 +2455,22 @@ function SuperAdminModal(_ref24) {
     _useState94 = _slicedToArray(_useState93, 2),
     loading = _useState94[0],
     setLoading = _useState94[1];
-  const _useState95 = useState(''),
+  const _useState95 = useState(false),
     _useState96 = _slicedToArray(_useState95, 2),
-    toast = _useState96[0],
-    setToast = _useState96[1];
+    refreshing = _useState96[0],
+    setRefreshing = _useState96[1];
   const _useState97 = useState(''),
     _useState98 = _slicedToArray(_useState97, 2),
-    newDept = _useState98[0],
-    setNewDept = _useState98[1];
-  const _useState99 = useState(null),
+    toast = _useState98[0],
+    setToast = _useState98[1];
+  const _useState99 = useState(''),
     _useState100 = _slicedToArray(_useState99, 2),
-    confirmDelete = _useState100[0],
-    setConfirmDelete = _useState100[1];
+    newDept = _useState100[0],
+    setNewDept = _useState100[1];
+  const _useState101 = useState(null),
+    _useState102 = _slicedToArray(_useState101, 2),
+    confirmDelete = _useState102[0],
+    setConfirmDelete = _useState102[1];
   function showToast(msg) {
     let type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'success';
     setToast({
@@ -2479,14 +2483,24 @@ function SuperAdminModal(_ref24) {
     loadAll();
   }, []);
   async function loadAll() {
-    setLoading(true);
-    const _await$Promise$all5 = await Promise.all([sb.from('profiles').select('*').order('full_name'), sb.from('departments').select('*,department_admins(profile_id,profiles(full_name)),department_members(profile_id,profiles(full_name,email))').order('name')]),
-      _await$Promise$all6 = _slicedToArray(_await$Promise$all5, 2),
+    let silent = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+    if (!silent) setLoading(true);else setRefreshing(true);
+    // Separate queries to avoid RLS blocking nested selects
+    const _await$Promise$all5 = await Promise.all([sb.from('profiles').select('*').order('full_name'), sb.from('departments').select('*').order('name'), sb.from('department_admins').select('department_id,profile_id'), sb.from('department_members').select('department_id,profile_id')]),
+      _await$Promise$all6 = _slicedToArray(_await$Promise$all5, 4),
       u = _await$Promise$all6[0].data,
-      d = _await$Promise$all6[1].data;
+      d = _await$Promise$all6[1].data,
+      da = _await$Promise$all6[2].data,
+      dm = _await$Promise$all6[3].data;
     setUsers(u || []);
-    setDepts(d || []);
+    const mergedDepts = (d || []).map(dept => ({
+      ...dept,
+      department_admins: (da || []).filter(a => a.department_id === dept.id),
+      department_members: (dm || []).filter(m => m.department_id === dept.id)
+    }));
+    setDepts(mergedDepts);
     setLoading(false);
+    setRefreshing(false);
   }
 
   // Use the set_super_admin RPC to bypass RLS
@@ -2511,15 +2525,14 @@ function SuperAdminModal(_ref24) {
     const _await$sb$rpc3 = await sb.rpc('add_department', {
         dept_name: newDept.trim()
       }),
-      data = _await$sb$rpc3.data,
       e = _await$sb$rpc3.error;
     if (e) {
       showToast('Error: ' + e.message, 'error');
       return;
     }
     setNewDept('');
-    loadAll();
     showToast('Department added ✓');
+    loadAll(true);
   }
   async function toggleDeptAdmin(deptId, userId, isAdmin) {
     const _await$sb$rpc4 = await sb.rpc('set_dept_admin', {
@@ -2532,8 +2545,8 @@ function SuperAdminModal(_ref24) {
       showToast('Error: ' + e.message, 'error');
       return;
     }
-    showToast(isAdmin ? 'Admin removed' : 'Admin assigned');
-    loadAll();
+    showToast(isAdmin ? 'Admin removed' : 'Admin assigned ✓');
+    loadAll(true);
   }
   async function toggleDeptMember(deptId, userId, isMember) {
     const _await$sb$rpc5 = await sb.rpc('set_dept_member', {
@@ -2546,8 +2559,8 @@ function SuperAdminModal(_ref24) {
       showToast('Error: ' + e.message, 'error');
       return;
     }
-    showToast(isMember ? 'Member removed' : 'Member added');
-    loadAll();
+    showToast(isMember ? 'Member removed' : 'Member added ✓');
+    loadAll(true);
   }
   async function deleteUser(u) {
     // Remove from all dept memberships, meetings, availability
@@ -2603,7 +2616,15 @@ function SuperAdminModal(_ref24) {
       justifyContent: 'center',
       padding: 24
     }
-  }, /*#__PURE__*/React.createElement(Spinner, null)) : /*#__PURE__*/React.createElement(React.Fragment, null, tab === 'members' && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(Spinner, null)) : /*#__PURE__*/React.createElement(React.Fragment, null, refreshing && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'center',
+      padding: 8
+    }
+  }, /*#__PURE__*/React.createElement(Spinner, {
+    size: 14
+  })), tab === 'members' && /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       flexDirection: 'column',
@@ -2815,22 +2836,22 @@ function SuperAdminModal(_ref24) {
 function InviteTab(_ref27) {
   let profile = _ref27.profile,
     showToast = _ref27.showToast;
-  const _useState101 = useState(null),
-    _useState102 = _slicedToArray(_useState101, 2),
-    activeCode = _useState102[0],
-    setActiveCode = _useState102[1];
-  const _useState103 = useState(true),
+  const _useState103 = useState(null),
     _useState104 = _slicedToArray(_useState103, 2),
-    loading = _useState104[0],
-    setLoading = _useState104[1];
-  const _useState105 = useState(false),
+    activeCode = _useState104[0],
+    setActiveCode = _useState104[1];
+  const _useState105 = useState(true),
     _useState106 = _slicedToArray(_useState105, 2),
-    generating = _useState106[0],
-    setGenerating = _useState106[1];
+    loading = _useState106[0],
+    setLoading = _useState106[1];
   const _useState107 = useState(false),
     _useState108 = _slicedToArray(_useState107, 2),
-    copied = _useState108[0],
-    setCopied = _useState108[1];
+    generating = _useState108[0],
+    setGenerating = _useState108[1];
+  const _useState109 = useState(false),
+    _useState110 = _slicedToArray(_useState109, 2),
+    copied = _useState110[0],
+    setCopied = _useState110[1];
   useEffect(() => {
     load();
   }, []);
@@ -2993,22 +3014,22 @@ function InviteTab(_ref27) {
 
 // ── APP ROOT ──────────────────────────────────────────────────────────────────
 function App() {
-  const _useState109 = useState(null),
-    _useState110 = _slicedToArray(_useState109, 2),
-    session = _useState110[0],
-    setSession = _useState110[1];
   const _useState111 = useState(null),
     _useState112 = _slicedToArray(_useState111, 2),
-    profile = _useState112[0],
-    setProfile = _useState112[1];
-  const _useState113 = useState(true),
+    session = _useState112[0],
+    setSession = _useState112[1];
+  const _useState113 = useState(null),
     _useState114 = _slicedToArray(_useState113, 2),
-    loading = _useState114[0],
-    setLoading = _useState114[1];
-  const _useState115 = useState(null),
+    profile = _useState114[0],
+    setProfile = _useState114[1];
+  const _useState115 = useState(true),
     _useState116 = _slicedToArray(_useState115, 2),
-    meetingToken = _useState116[0],
-    setMeetingToken = _useState116[1];
+    loading = _useState116[0],
+    setLoading = _useState116[1];
+  const _useState117 = useState(null),
+    _useState118 = _slicedToArray(_useState117, 2),
+    meetingToken = _useState118[0],
+    setMeetingToken = _useState118[1];
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const m = params.get('m');
@@ -3084,14 +3105,14 @@ function MeetingTokenRedirect(_ref29) {
   let token = _ref29.token,
     profile = _ref29.profile,
     onBack = _ref29.onBack;
-  const _useState117 = useState(null),
-    _useState118 = _slicedToArray(_useState117, 2),
-    meeting = _useState118[0],
-    setMeeting = _useState118[1];
-  const _useState119 = useState(''),
+  const _useState119 = useState(null),
     _useState120 = _slicedToArray(_useState119, 2),
-    err = _useState120[0],
-    setErr = _useState120[1];
+    meeting = _useState120[0],
+    setMeeting = _useState120[1];
+  const _useState121 = useState(''),
+    _useState122 = _slicedToArray(_useState121, 2),
+    err = _useState122[0],
+    setErr = _useState122[1];
   useEffect(() => {
     sb.from('meetings').select('*,departments(name)').eq('share_token', token).single().then(_ref30 => {
       let data = _ref30.data,
