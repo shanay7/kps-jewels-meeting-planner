@@ -1521,10 +1521,18 @@ function Dashboard(_ref14) {
     _useState40 = _slicedToArray(_useState39, 2),
     showAdmin = _useState40[0],
     setShowAdmin = _useState40[1];
-  const _useState41 = useState(null),
+  const _useState41 = useState(false),
     _useState42 = _slicedToArray(_useState41, 2),
-    view = _useState42[0],
-    setView = _useState42[1]; // {type:'availability'|'bestslots', meeting}
+    showChangePass = _useState42[0],
+    setShowChangePass = _useState42[1];
+  const _useState43 = useState(false),
+    _useState44 = _slicedToArray(_useState43, 2),
+    showDeptAdmin = _useState44[0],
+    setShowDeptAdmin = _useState44[1];
+  const _useState45 = useState(null),
+    _useState46 = _slicedToArray(_useState45, 2),
+    view = _useState46[0],
+    setView = _useState46[1]; // {type:'availability'|'bestslots', meeting}
   const isSA = profile.is_super_admin;
   const isDeptAdmin = useRef(false);
   useEffect(() => {
@@ -1595,9 +1603,9 @@ function Dashboard(_ref14) {
       gap: 8,
       alignItems: 'center'
     }
-  }, isSA && /*#__PURE__*/React.createElement(Btn, {
+  }, (isSA || isDeptAdmin.current) && /*#__PURE__*/React.createElement(Btn, {
     variant: "ghost",
-    onClick: () => setShowAdmin(true),
+    onClick: () => isSA ? setShowAdmin(true) : setShowDeptAdmin(true),
     style: {
       fontSize: 18,
       padding: '4px 8px'
@@ -1611,6 +1619,15 @@ function Dashboard(_ref14) {
       borderRadius: 6
     }
   }, profile.full_name), /*#__PURE__*/React.createElement(Btn, {
+    variant: "ghost",
+    onClick: () => setShowChangePass(true),
+    style: {
+      fontSize: 12,
+      color: T.text3,
+      padding: '4px 8px'
+    },
+    title: "Change Password"
+  }, "\uD83D\uDD11"), /*#__PURE__*/React.createElement(Btn, {
     variant: "ghost",
     onClick: () => sb.auth.signOut(),
     style: {
@@ -1706,6 +1723,11 @@ function Dashboard(_ref14) {
   }), showAdmin && /*#__PURE__*/React.createElement(SuperAdminModal, {
     profile: profile,
     onClose: () => setShowAdmin(false)
+  }), showChangePass && /*#__PURE__*/React.createElement(ChangePasswordModal, {
+    onClose: () => setShowChangePass(false)
+  }), showDeptAdmin && /*#__PURE__*/React.createElement(DeptAdminModal, {
+    profile: profile,
+    onClose: () => setShowDeptAdmin(false)
   }));
 }
 
@@ -1717,22 +1739,22 @@ function MeetingCard(_ref15) {
     onMarkDates = _ref15.onMarkDates,
     onBestSlots = _ref15.onBestSlots,
     onRefresh = _ref15.onRefresh;
-  const _useState43 = useState(null),
-    _useState44 = _slicedToArray(_useState43, 2),
-    stats = _useState44[0],
-    setStats = _useState44[1];
-  const _useState45 = useState(false),
-    _useState46 = _slicedToArray(_useState45, 2),
-    copied = _useState46[0],
-    setCopied = _useState46[1];
-  const _useState47 = useState(false),
+  const _useState47 = useState(null),
     _useState48 = _slicedToArray(_useState47, 2),
-    confirmDelete = _useState48[0],
-    setConfirmDelete = _useState48[1];
+    stats = _useState48[0],
+    setStats = _useState48[1];
   const _useState49 = useState(false),
     _useState50 = _slicedToArray(_useState49, 2),
-    deleting = _useState50[0],
-    setDeleting = _useState50[1];
+    copied = _useState50[0],
+    setCopied = _useState50[1];
+  const _useState51 = useState(false),
+    _useState52 = _slicedToArray(_useState51, 2),
+    confirmDelete = _useState52[0],
+    setConfirmDelete = _useState52[1];
+  const _useState53 = useState(false),
+    _useState54 = _slicedToArray(_useState53, 2),
+    deleting = _useState54[0],
+    setDeleting = _useState54[1];
   const shareUrl = "".concat(window.location.origin).concat(window.location.pathname, "?m=").concat(meeting.share_token);
   useEffect(() => {
     Promise.all([sb.from('meeting_members').select('profile_id', {
@@ -1902,19 +1924,19 @@ function CreateMeetingModal(_ref18) {
   let profile = _ref18.profile,
     onClose = _ref18.onClose,
     onCreated = _ref18.onCreated;
-  const _useState51 = useState([]),
-    _useState52 = _slicedToArray(_useState51, 2),
-    depts = _useState52[0],
-    setDepts = _useState52[1];
-  const _useState53 = useState([]),
-    _useState54 = _slicedToArray(_useState53, 2),
-    members = _useState54[0],
-    setMembers = _useState54[1]; // dept members to invite
-  const _useState55 = useState(new Set()),
+  const _useState55 = useState([]),
     _useState56 = _slicedToArray(_useState55, 2),
-    selectedMembers = _useState56[0],
-    setSelectedMembers = _useState56[1];
-  const _useState57 = useState({
+    depts = _useState56[0],
+    setDepts = _useState56[1];
+  const _useState57 = useState([]),
+    _useState58 = _slicedToArray(_useState57, 2),
+    members = _useState58[0],
+    setMembers = _useState58[1]; // dept members to invite
+  const _useState59 = useState(new Set()),
+    _useState60 = _slicedToArray(_useState59, 2),
+    selectedMembers = _useState60[0],
+    setSelectedMembers = _useState60[1];
+  const _useState61 = useState({
       title: '',
       desc: '',
       deptId: '',
@@ -1923,17 +1945,17 @@ function CreateMeetingModal(_ref18) {
       timezone: 'Asia/Kolkata',
       durationMins: 60
     }),
-    _useState58 = _slicedToArray(_useState57, 2),
-    form = _useState58[0],
-    setForm = _useState58[1];
-  const _useState59 = useState(false),
-    _useState60 = _slicedToArray(_useState59, 2),
-    loading = _useState60[0],
-    setLoading = _useState60[1];
-  const _useState61 = useState(''),
     _useState62 = _slicedToArray(_useState61, 2),
-    error = _useState62[0],
-    setError = _useState62[1];
+    form = _useState62[0],
+    setForm = _useState62[1];
+  const _useState63 = useState(false),
+    _useState64 = _slicedToArray(_useState63, 2),
+    loading = _useState64[0],
+    setLoading = _useState64[1];
+  const _useState65 = useState(''),
+    _useState66 = _slicedToArray(_useState65, 2),
+    error = _useState66[0],
+    setError = _useState66[1];
   useEffect(() => {
     sb.from('departments').select('*').then(_ref19 => {
       let data = _ref19.data;
@@ -2148,38 +2170,302 @@ function CreateMeetingModal(_ref18) {
   }, "Create Meeting"))));
 }
 
-// ── SUPER ADMIN MODAL ─────────────────────────────────────────────────────────
-function SuperAdminModal(_ref22) {
-  let profile = _ref22.profile,
-    onClose = _ref22.onClose;
-  const _useState63 = useState('invite'),
-    _useState64 = _slicedToArray(_useState63, 2),
-    tab = _useState64[0],
-    setTab = _useState64[1];
-  const _useState65 = useState([]),
-    _useState66 = _slicedToArray(_useState65, 2),
-    users = _useState66[0],
-    setUsers = _useState66[1];
-  const _useState67 = useState([]),
+// ── CHANGE PASSWORD MODAL ─────────────────────────────────────────────────────
+function ChangePasswordModal(_ref22) {
+  let onClose = _ref22.onClose;
+  const _useState67 = useState(''),
     _useState68 = _slicedToArray(_useState67, 2),
-    depts = _useState68[0],
-    setDepts = _useState68[1];
-  const _useState69 = useState(true),
+    current = _useState68[0],
+    setCurrent = _useState68[1];
+  const _useState69 = useState(''),
     _useState70 = _slicedToArray(_useState69, 2),
-    loading = _useState70[0],
-    setLoading = _useState70[1];
+    newPass = _useState70[0],
+    setNewPass = _useState70[1];
   const _useState71 = useState(''),
     _useState72 = _slicedToArray(_useState71, 2),
-    toast = _useState72[0],
-    setToast = _useState72[1];
-  const _useState73 = useState(''),
+    confirm = _useState72[0],
+    setConfirm = _useState72[1];
+  const _useState73 = useState(false),
     _useState74 = _slicedToArray(_useState73, 2),
-    newDept = _useState74[0],
-    setNewDept = _useState74[1];
-  const _useState75 = useState(null),
+    loading = _useState74[0],
+    setLoading = _useState74[1];
+  const _useState75 = useState(''),
     _useState76 = _slicedToArray(_useState75, 2),
-    confirmDelete = _useState76[0],
-    setConfirmDelete = _useState76[1];
+    error = _useState76[0],
+    setError = _useState76[1];
+  const _useState77 = useState(false),
+    _useState78 = _slicedToArray(_useState77, 2),
+    success = _useState78[0],
+    setSuccess = _useState78[1];
+  async function handleChange() {
+    if (!newPass) return setError('Please enter a new password.');
+    if (newPass.length < 6) return setError('Password must be at least 6 characters.');
+    if (newPass !== confirm) return setError('Passwords do not match.');
+    setLoading(true);
+    setError('');
+    const _await$sb$auth$update = await sb.auth.updateUser({
+        password: newPass
+      }),
+      e = _await$sb$auth$update.error;
+    if (e) setError(e.message);else setSuccess(true);
+    setLoading(false);
+  }
+  return /*#__PURE__*/React.createElement(Modal, {
+    title: "Change Password",
+    onClose: onClose,
+    width: 400
+  }, success ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      padding: '20px 0'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 32,
+      marginBottom: 12
+    }
+  }, "\u2705"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      color: T.green,
+      marginBottom: 6
+    }
+  }, "Password changed successfully!"), /*#__PURE__*/React.createElement(Btn, {
+    onClick: onClose,
+    style: {
+      margin: '16px auto 0'
+    }
+  }, "Done")) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "New Password"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    value: newPass,
+    onChange: e => setNewPass(e.target.value),
+    placeholder: "Min. 6 characters",
+    autoComplete: "new-password",
+    style: inputStyle
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Confirm New Password"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    value: confirm,
+    onChange: e => setConfirm(e.target.value),
+    placeholder: "Repeat new password",
+    autoComplete: "new-password",
+    onKeyDown: e => e.key === 'Enter' && handleChange(),
+    style: inputStyle
+  })), error && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: T.red,
+      padding: '8px 12px',
+      background: T.red + '11',
+      borderRadius: 6
+    }
+  }, error), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      justifyContent: 'flex-end',
+      marginTop: 4
+    }
+  }, /*#__PURE__*/React.createElement(Btn, {
+    variant: "secondary",
+    onClick: onClose
+  }, "Cancel"), /*#__PURE__*/React.createElement(Btn, {
+    onClick: handleChange,
+    loading: loading
+  }, "Update Password"))));
+}
+
+// ── DEPT ADMIN MODAL — for department admins (not super admin) ────────────────
+function DeptAdminModal(_ref23) {
+  let profile = _ref23.profile,
+    onClose = _ref23.onClose;
+  const _useState79 = useState([]),
+    _useState80 = _slicedToArray(_useState79, 2),
+    depts = _useState80[0],
+    setDepts = _useState80[1];
+  const _useState81 = useState([]),
+    _useState82 = _slicedToArray(_useState81, 2),
+    allUsers = _useState82[0],
+    setAllUsers = _useState82[1];
+  const _useState83 = useState(true),
+    _useState84 = _slicedToArray(_useState83, 2),
+    loading = _useState84[0],
+    setLoading = _useState84[1];
+  const _useState85 = useState(''),
+    _useState86 = _slicedToArray(_useState85, 2),
+    toast = _useState86[0],
+    setToast = _useState86[1];
+  function showToast(msg) {
+    let type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'success';
+    setToast({
+      msg,
+      type
+    });
+    setTimeout(() => setToast(''), 2500);
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  async function load() {
+    setLoading(true);
+    // Load only departments this user is admin of
+    const _await$sb$from$select5 = await sb.from('department_admins').select('department_id,departments(id,name,department_members(profile_id,profiles(full_name,email)))').eq('profile_id', profile.id),
+      adminDepts = _await$sb$from$select5.data;
+    const _await$sb$from$select6 = await sb.from('profiles').select('id,full_name,email').order('full_name'),
+      users = _await$sb$from$select6.data;
+    setDepts((adminDepts || []).map(d => d.departments).filter(Boolean));
+    setAllUsers(users || []);
+    setLoading(false);
+  }
+  async function toggleMember(deptId, userId, isMember) {
+    if (isMember) {
+      await sb.from('department_members').delete().eq('department_id', deptId).eq('profile_id', userId);
+    } else {
+      await sb.from('department_members').insert({
+        department_id: deptId,
+        profile_id: userId,
+        added_by: profile.id
+      });
+    }
+    showToast(isMember ? 'Member removed' : 'Member added');
+    load();
+  }
+  return /*#__PURE__*/React.createElement(Modal, {
+    title: "Manage My Departments",
+    onClose: onClose,
+    width: 520
+  }, loading ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'center',
+      padding: 24
+    }
+  }, /*#__PURE__*/React.createElement(Spinner, null)) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 16
+    }
+  }, depts.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      padding: 24,
+      color: T.text2,
+      fontSize: 13
+    }
+  }, "You haven't been assigned as admin of any department yet."), depts.map(d => {
+    const memberIds = new Set((d.department_members || []).map(m => m.profile_id));
+    return /*#__PURE__*/React.createElement("div", {
+      key: d.id,
+      style: {
+        background: T.bg2,
+        borderRadius: 10,
+        padding: '14px'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "'Cormorant Garamond',serif",
+        fontSize: 16,
+        color: T.text,
+        marginBottom: 10
+      }
+    }, d.name, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: T.text3,
+        marginLeft: 8
+      }
+    }, memberIds.size, " members")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 5,
+        maxHeight: 220,
+        overflowY: 'auto'
+      }
+    }, allUsers.map(u => {
+      const isMember = memberIds.has(u.id);
+      return /*#__PURE__*/React.createElement("div", {
+        key: u.id,
+        style: {
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '6px 10px',
+          background: T.bg3,
+          borderRadius: 7
+        }
+      }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 13,
+          color: isMember ? T.text : T.text2
+        }
+      }, u.full_name), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 10,
+          color: T.text3
+        }
+      }, u.email)), /*#__PURE__*/React.createElement("button", {
+        onClick: () => toggleMember(d.id, u.id, isMember),
+        style: {
+          background: isMember ? T.green + '22' : 'transparent',
+          border: "1px solid ".concat(isMember ? T.green + '44' : T.border2),
+          borderRadius: 6,
+          padding: '4px 10px',
+          color: isMember ? T.green : T.text3,
+          fontSize: 11,
+          cursor: 'pointer',
+          flexShrink: 0
+        }
+      }, isMember ? '✓ Member' : '+ Add'));
+    })));
+  })), /*#__PURE__*/React.createElement(Toast, {
+    msg: toast.msg,
+    type: toast.type
+  }));
+}
+
+// ── SUPER ADMIN MODAL ─────────────────────────────────────────────────────────
+function SuperAdminModal(_ref24) {
+  let profile = _ref24.profile,
+    onClose = _ref24.onClose;
+  const _useState87 = useState('invite'),
+    _useState88 = _slicedToArray(_useState87, 2),
+    tab = _useState88[0],
+    setTab = _useState88[1];
+  const _useState89 = useState([]),
+    _useState90 = _slicedToArray(_useState89, 2),
+    users = _useState90[0],
+    setUsers = _useState90[1];
+  const _useState91 = useState([]),
+    _useState92 = _slicedToArray(_useState91, 2),
+    depts = _useState92[0],
+    setDepts = _useState92[1];
+  const _useState93 = useState(true),
+    _useState94 = _slicedToArray(_useState93, 2),
+    loading = _useState94[0],
+    setLoading = _useState94[1];
+  const _useState95 = useState(''),
+    _useState96 = _slicedToArray(_useState95, 2),
+    toast = _useState96[0],
+    setToast = _useState96[1];
+  const _useState97 = useState(''),
+    _useState98 = _slicedToArray(_useState97, 2),
+    newDept = _useState98[0],
+    setNewDept = _useState98[1];
+  const _useState99 = useState(null),
+    _useState100 = _slicedToArray(_useState99, 2),
+    confirmDelete = _useState100[0],
+    setConfirmDelete = _useState100[1];
   function showToast(msg) {
     let type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'success';
     setToast({
@@ -2271,10 +2557,10 @@ function SuperAdminModal(_ref22) {
       borderRadius: 8,
       padding: 3
     }
-  }, TABS.map(_ref23 => {
-    let _ref24 = _slicedToArray(_ref23, 2),
-      v = _ref24[0],
-      l = _ref24[1];
+  }, TABS.map(_ref25 => {
+    let _ref26 = _slicedToArray(_ref25, 2),
+      v = _ref26[0],
+      l = _ref26[1];
     return /*#__PURE__*/React.createElement("button", {
       key: v,
       onClick: () => setTab(v),
@@ -2509,34 +2795,34 @@ function SuperAdminModal(_ref22) {
 }
 
 // ── INVITE TAB ────────────────────────────────────────────────────────────────
-function InviteTab(_ref25) {
-  let profile = _ref25.profile,
-    showToast = _ref25.showToast;
-  const _useState77 = useState(null),
-    _useState78 = _slicedToArray(_useState77, 2),
-    activeCode = _useState78[0],
-    setActiveCode = _useState78[1];
-  const _useState79 = useState(true),
-    _useState80 = _slicedToArray(_useState79, 2),
-    loading = _useState80[0],
-    setLoading = _useState80[1];
-  const _useState81 = useState(false),
-    _useState82 = _slicedToArray(_useState81, 2),
-    generating = _useState82[0],
-    setGenerating = _useState82[1];
-  const _useState83 = useState(false),
-    _useState84 = _slicedToArray(_useState83, 2),
-    copied = _useState84[0],
-    setCopied = _useState84[1];
+function InviteTab(_ref27) {
+  let profile = _ref27.profile,
+    showToast = _ref27.showToast;
+  const _useState101 = useState(null),
+    _useState102 = _slicedToArray(_useState101, 2),
+    activeCode = _useState102[0],
+    setActiveCode = _useState102[1];
+  const _useState103 = useState(true),
+    _useState104 = _slicedToArray(_useState103, 2),
+    loading = _useState104[0],
+    setLoading = _useState104[1];
+  const _useState105 = useState(false),
+    _useState106 = _slicedToArray(_useState105, 2),
+    generating = _useState106[0],
+    setGenerating = _useState106[1];
+  const _useState107 = useState(false),
+    _useState108 = _slicedToArray(_useState107, 2),
+    copied = _useState108[0],
+    setCopied = _useState108[1];
   useEffect(() => {
     load();
   }, []);
   async function load() {
     setLoading(true);
-    const _await$sb$from$select5 = await sb.from('invite_codes').select('*').order('created_at', {
+    const _await$sb$from$select7 = await sb.from('invite_codes').select('*').order('created_at', {
         ascending: false
       }).limit(1).maybeSingle(),
-      data = _await$sb$from$select5.data;
+      data = _await$sb$from$select7.data;
     setActiveCode(data);
     setLoading(false);
   }
@@ -2690,30 +2976,30 @@ function InviteTab(_ref25) {
 
 // ── APP ROOT ──────────────────────────────────────────────────────────────────
 function App() {
-  const _useState85 = useState(null),
-    _useState86 = _slicedToArray(_useState85, 2),
-    session = _useState86[0],
-    setSession = _useState86[1];
-  const _useState87 = useState(null),
-    _useState88 = _slicedToArray(_useState87, 2),
-    profile = _useState88[0],
-    setProfile = _useState88[1];
-  const _useState89 = useState(true),
-    _useState90 = _slicedToArray(_useState89, 2),
-    loading = _useState90[0],
-    setLoading = _useState90[1];
-  const _useState91 = useState(null),
-    _useState92 = _slicedToArray(_useState91, 2),
-    meetingToken = _useState92[0],
-    setMeetingToken = _useState92[1];
+  const _useState109 = useState(null),
+    _useState110 = _slicedToArray(_useState109, 2),
+    session = _useState110[0],
+    setSession = _useState110[1];
+  const _useState111 = useState(null),
+    _useState112 = _slicedToArray(_useState111, 2),
+    profile = _useState112[0],
+    setProfile = _useState112[1];
+  const _useState113 = useState(true),
+    _useState114 = _slicedToArray(_useState113, 2),
+    loading = _useState114[0],
+    setLoading = _useState114[1];
+  const _useState115 = useState(null),
+    _useState116 = _slicedToArray(_useState115, 2),
+    meetingToken = _useState116[0],
+    setMeetingToken = _useState116[1];
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const m = params.get('m');
     if (m) setMeetingToken(m);
   }, []);
   useEffect(() => {
-    sb.auth.getSession().then(_ref26 => {
-      let session = _ref26.data.session;
+    sb.auth.getSession().then(_ref28 => {
+      let session = _ref28.data.session;
       setSession(session);
       if (session) loadProfile(session.user.id);else setLoading(false);
     });
@@ -2729,8 +3015,8 @@ function App() {
   }, []);
   async function loadProfile(uid) {
     setLoading(true);
-    const _await$sb$from$select6 = await sb.from('profiles').select('*').eq('id', uid).single(),
-      data = _await$sb$from$select6.data;
+    const _await$sb$from$select8 = await sb.from('profiles').select('*').eq('id', uid).single(),
+      data = _await$sb$from$select8.data;
     // Auto-promote Shanay
     if (data && data.email === 'sanghvishanay7@gmail.com' && !data.is_super_admin) {
       await sb.rpc('set_super_admin', {
@@ -2777,22 +3063,22 @@ function App() {
     profile: profile
   });
 }
-function MeetingTokenRedirect(_ref27) {
-  let token = _ref27.token,
-    profile = _ref27.profile,
-    onBack = _ref27.onBack;
-  const _useState93 = useState(null),
-    _useState94 = _slicedToArray(_useState93, 2),
-    meeting = _useState94[0],
-    setMeeting = _useState94[1];
-  const _useState95 = useState(''),
-    _useState96 = _slicedToArray(_useState95, 2),
-    err = _useState96[0],
-    setErr = _useState96[1];
+function MeetingTokenRedirect(_ref29) {
+  let token = _ref29.token,
+    profile = _ref29.profile,
+    onBack = _ref29.onBack;
+  const _useState117 = useState(null),
+    _useState118 = _slicedToArray(_useState117, 2),
+    meeting = _useState118[0],
+    setMeeting = _useState118[1];
+  const _useState119 = useState(''),
+    _useState120 = _slicedToArray(_useState119, 2),
+    err = _useState120[0],
+    setErr = _useState120[1];
   useEffect(() => {
-    sb.from('meetings').select('*,departments(name)').eq('share_token', token).single().then(_ref28 => {
-      let data = _ref28.data,
-        error = _ref28.error;
+    sb.from('meetings').select('*,departments(name)').eq('share_token', token).single().then(_ref30 => {
+      let data = _ref30.data,
+        error = _ref30.error;
       if (error || !data) setErr('Meeting not found or link is invalid.');else setMeeting(data);
     });
   }, [token]);
@@ -2826,1209 +3112,6 @@ function MeetingTokenRedirect(_ref27) {
 }
 ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));
 
-</script>
-</body>
-</html>// ── Timezones ─────────────────────────────────────────────────────────────────
-const TIMEZONES = [
-  {value:'Asia/Kolkata',    label:'IST — India (UTC+5:30)'},
-  {value:'America/New_York',label:'EST — New York (UTC-5)'},
-  {value:'America/Chicago', label:'CST — Chicago (UTC-6)'},
-  {value:'America/Denver',  label:'MST — Denver (UTC-7)'},
-  {value:'America/Los_Angeles',label:'PST — Los Angeles (UTC-8)'},
-  {value:'Europe/London',   label:'GMT — London (UTC+0)'},
-  {value:'Europe/Paris',    label:'CET — Paris (UTC+1)'},
-  {value:'Asia/Dubai',      label:'GST — Dubai (UTC+4)'},
-  {value:'Asia/Singapore',  label:'SGT — Singapore (UTC+8)'},
-];
-
-function tzLabel(tz){return TIMEZONES.find(t=>t.value===tz)?.label.split('—')[0].trim()||tz;}
-
-// Convert a UTC Date to YYYY-MM-DD HH:MM in a given timezone
-function formatInTz(utcDate, tz){
-  try{
-    return new Intl.DateTimeFormat('en-CA',{
-      timeZone:tz, year:'numeric', month:'2-digit', day:'2-digit',
-      hour:'2-digit', minute:'2-digit', hour12:false
-    }).format(utcDate).replace(', ','T');
-  }catch{return '';}
-}
-
-// Get all 30-min UTC slot starts for a date range in a given timezone
-function getSlotsForRange(startDate, endDate, tz){
-  const slots=[];
-  // startDate / endDate are 'YYYY-MM-DD' strings in meeting tz
-  // We need midnight of startDate in tz, up to end of endDate in tz
-  const start = new Date(new Date(startDate+'T00:00:00').toLocaleString('en-US',{timeZone:tz}));
-  const end   = new Date(new Date(endDate  +'T23:30:00').toLocaleString('en-US',{timeZone:tz}));
-  // Align to 30-min boundary in UTC
-  let cur = new Date(startDate+'T00:00:00');
-  // Find UTC equiv of midnight in tz
-  const tzOffset = getOffsetMinutes(tz, new Date(startDate+'T00:00:00Z'));
-  cur = new Date(startDate+'T00:00:00Z');
-  // Just iterate from start of startDate 00:00 meeting-tz to end+1
-  // Simpler: generate all 30-min UTC slots that fall within the date range in meeting tz
-  const startUTC = toUTC(startDate+'T00:00', tz);
-  const endUTC   = toUTC(endDate  +'T23:30', tz);
-  let t = new Date(startUTC);
-  while(t <= new Date(endUTC)){
-    slots.push(new Date(t));
-    t = new Date(t.getTime() + 30*60000);
-  }
-  return slots;
-}
-
-function toUTC(localDateTimeStr, tz){
-  // localDateTimeStr: 'YYYY-MM-DDTHH:MM'
-  // Returns a UTC ISO string
-  const dt = new Date(localDateTimeStr);
-  // Use Intl to get offset
-  const parts = new Intl.DateTimeFormat('en-US',{
-    timeZone:tz, year:'numeric', month:'numeric', day:'numeric',
-    hour:'numeric', minute:'numeric', second:'numeric', hour12:false
-  }).formatToParts(dt);
-  const p={};
-  parts.forEach(({type,value})=>p[type]=value);
-  const local = new Date(`${p.year}-${p.month.padStart(2,'0')}-${p.day.padStart(2,'0')}T${p.hour.padStart(2,'0')}:${p.minute.padStart(2,'0')}:00Z`);
-  const diff = dt - local;
-  return new Date(dt.getTime() - diff).toISOString();
-}
-
-function getOffsetMinutes(tz, date){
-  const utc = date.getTime();
-  const localStr = date.toLocaleString('en-US',{timeZone:tz});
-  const local = new Date(localStr);
-  return (utc - local.getTime())/60000;
-}
-
-// Format a UTC slot start for display in a given timezone
-function displaySlot(utcIso, displayTz){
-  const d = new Date(utcIso);
-  return d.toLocaleString('en-US',{
-    timeZone:displayTz, weekday:'short', month:'short', day:'numeric',
-    hour:'2-digit', minute:'2-digit', hour12:true
-  });
-}
-
-function displayTime(utcIso, displayTz){
-  return new Date(utcIso).toLocaleString('en-US',{
-    timeZone:displayTz, hour:'2-digit', minute:'2-digit', hour12:true
-  });
-}
-
-function displayDate(utcIso, displayTz){
-  return new Date(utcIso).toLocaleString('en-US',{
-    timeZone:displayTz, weekday:'short', month:'short', day:'numeric'
-  });
-}
-
-// ── Design tokens ─────────────────────────────────────────────────────────────
-const T={
-  bg:'#0c0a08', bg1:'#141210', bg2:'#1c1916', bg3:'#242018',
-  border:'#2e2a20', border2:'#3e3a28',
-  gold:'#c8a45a', gold2:'#e8c47a',
-  text:'#f0ead8', text2:'#a09070', text3:'#605840',
-  green:'#4a9a6a', red:'#c04040', radius:'10px',
-};
-
-// ── Shared UI ─────────────────────────────────────────────────────────────────
-const Spinner=({size=20,color=T.gold})=>(
-  <div className="spin" style={{width:size,height:size,border:`2px solid ${color}22`,borderTop:`2px solid ${color}`,borderRadius:'50%',flexShrink:0}}/>
-);
-const Btn=({children,onClick,variant='primary',disabled,loading,style={},...p})=>{
-  const vs={primary:{background:T.gold,color:'#0c0a08',border:'none',fontWeight:500},
-    secondary:{background:'transparent',color:T.text2,border:`1px solid ${T.border2}`},
-    ghost:{background:'transparent',color:T.text3,border:'none'},
-    danger:{background:'transparent',color:T.red,border:`1px solid ${T.red}44`}};
-  return <button onClick={onClick} disabled={disabled||loading} {...p}
-    style={{...vs[variant],padding:'9px 18px',borderRadius:T.radius,fontSize:13,letterSpacing:'0.5px',
-      display:'flex',alignItems:'center',justifyContent:'center',gap:8,
-      transition:'all 0.15s',opacity:disabled?0.5:1,cursor:disabled?'not-allowed':'pointer',...style}}>
-    {loading?<Spinner size={14} color={variant==='primary'?'#0c0a08':T.gold}/>:children}
-  </button>;
-};
-const Card=({children,style={}})=>(
-  <div style={{background:T.bg1,border:`1px solid ${T.border}`,borderRadius:12,...style}}>{children}</div>
-);
-const Modal=({title,children,onClose,width=480})=>(
-  <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:16}}>
-    <div className="fade-up" style={{background:T.bg1,border:`1px solid ${T.border2}`,borderRadius:14,width:'100%',maxWidth:width,maxHeight:'90vh',overflow:'auto'}}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 20px',borderBottom:`1px solid ${T.border}`,position:'sticky',top:0,background:T.bg1,zIndex:1}}>
-        <span style={{fontSize:16,color:T.text,fontFamily:"'Cormorant Garamond',serif"}}>{title}</span>
-        <button onClick={onClose} style={{background:'none',border:'none',color:T.text3,fontSize:22,cursor:'pointer',lineHeight:1}}>×</button>
-      </div>
-      <div style={{padding:20}}>{children}</div>
-    </div>
-  </div>
-);
-const Toast=({msg,type='success'})=>msg?(
-  <div style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',
-    background:type==='success'?T.green:T.red,color:'#fff',
-    padding:'10px 20px',borderRadius:20,fontSize:13,zIndex:2000,
-    boxShadow:'0 4px 20px rgba(0,0,0,0.4)',whiteSpace:'nowrap'}}>
-    {msg}
-  </div>
-):null;
-
-const Field=({label,children,style={}})=>(
-  <div style={{display:'flex',flexDirection:'column',gap:6,...style}}>
-    {label&&<label style={{fontSize:11,letterSpacing:2,textTransform:'uppercase',color:T.text3}}>{label}</label>}
-    {children}
-  </div>
-);
-const inputStyle={background:T.bg2,border:`1px solid ${T.border}`,borderRadius:T.radius,padding:'10px 14px',color:T.text,fontSize:14,outline:'none',width:'100%'};
-const selectStyle={...inputStyle,cursor:'pointer'};
-
-// ── AUTH ──────────────────────────────────────────────────────────────────────
-function AuthScreen(){
-  const [mode,setMode]=useState('login');
-  const [email,setEmail]=useState('');
-  const [password,setPassword]=useState('');
-  const [name,setName]=useState('');
-  const [loading,setLoading]=useState(false);
-  const [checking,setChecking]=useState(false);
-  const [error,setError]=useState('');
-
-  useEffect(()=>{
-    const code=new URLSearchParams(window.location.search).get('join');
-    if(!code) return;
-    setChecking(true);
-    sb.from('invite_codes').select('*').eq('code',code).maybeSingle().then(({data})=>{
-      if(!data) setMode('invalid');
-      else if(new Date(data.expires_at)<new Date()) setMode('expired');
-      else setMode('signup');
-      setChecking(false);
-    });
-  },[]);
-
-  async function handleLogin(){
-    setLoading(true);setError('');
-    const{error:e}=await sb.auth.signInWithPassword({email,password});
-    if(e) setError('Invalid email or password.');
-    setLoading(false);
-  }
-
-  async function handleSignup(){
-    if(!name.trim()) return setError('Please enter your full name.');
-    if(!email.trim()) return setError('Please enter your email.');
-    if(password.length<6) return setError('Password must be at least 6 characters.');
-    setLoading(true);setError('');
-    const code=new URLSearchParams(window.location.search).get('join');
-    const{data:inv}=await sb.from('invite_codes').select('expires_at').eq('code',code).maybeSingle();
-    if(!inv||new Date(inv.expires_at)<new Date()){setMode('expired');setLoading(false);return;}
-    const{data:ex}=await sb.from('profiles').select('id').eq('email',email.trim().toLowerCase()).maybeSingle();
-    if(ex){setError('An account with this email already exists.');setLoading(false);return;}
-    const{error:e}=await sb.auth.signUp({email:email.trim(),password,options:{data:{full_name:name.trim()}}});
-    if(e) setError(e.message);
-    setLoading(false);
-  }
-
-  if(checking) return(
-    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:T.bg,flexDirection:'column',gap:16}}>
-      <Spinner size={28}/><div style={{fontSize:12,color:T.text3,letterSpacing:2}}>CHECKING INVITE…</div>
-    </div>
-  );
-
-  const infoScreens={
-    expired:{icon:'⏰',title:'Invite Link Expired',msg:'This invite link has expired (links are valid for 48 hours). Please ask your administrator to generate a new one.'},
-    invalid:{icon:'🚫',title:'Invalid Invite Link',msg:'This invite link is not valid. Please ask your administrator for a new one.'},
-  };
-  if(infoScreens[mode]) return(
-    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,background:T.bg}}>
-      <div className="fade-up" style={{width:'100%',maxWidth:380,textAlign:'center'}}>
-        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:11,letterSpacing:6,textTransform:'uppercase',color:T.text3,marginBottom:12}}>KPS Jewels</div>
-        <div style={{fontSize:40,marginBottom:14}}>{infoScreens[mode].icon}</div>
-        <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:400,color:T.text,marginBottom:10}}>{infoScreens[mode].title}</h2>
-        <p style={{fontSize:13,color:T.text2,lineHeight:1.7,marginBottom:20}}>{infoScreens[mode].msg}</p>
-        <Btn variant="secondary" onClick={()=>setMode('login')} style={{margin:'0 auto'}}>Go to Sign In</Btn>
-      </div>
-    </div>
-  );
-
-  const isSignup=mode==='signup';
-  return(
-    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,background:T.bg}}>
-      <div className="fade-up" style={{width:'100%',maxWidth:380}}>
-        <div style={{textAlign:'center',marginBottom:36}}>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:11,letterSpacing:6,textTransform:'uppercase',color:T.text3,marginBottom:8}}>KPS Jewels</div>
-          <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:30,fontWeight:300,color:T.text}}>Meeting Planner</h1>
-          <div style={{width:36,height:1,background:T.gold,margin:'10px auto 0'}}/>
-        </div>
-        <Card style={{padding:26}}>
-          <div style={{display:'flex',marginBottom:22,background:T.bg2,borderRadius:8,padding:3}}>
-            {(isSignup?[['login','Sign In'],['signup','Sign Up']]:[['login','Sign In']]).map(([m,l])=>(
-              <button key={m} onClick={()=>{setMode(m);setError('');}}
-                style={{flex:1,padding:'7px',borderRadius:6,border:'none',background:mode===m?T.bg3:'transparent',color:mode===m?T.text:T.text3,fontSize:12,letterSpacing:1,textTransform:'uppercase',cursor:'pointer'}}>
-                {l}
-              </button>
-            ))}
-          </div>
-          <div style={{display:'flex',flexDirection:'column',gap:13}}>
-            {isSignup&&<Field label="Full Name"><input value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name" autoComplete="name" style={inputStyle}/></Field>}
-            <Field label="Email"><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="your@email.com" autoComplete="email" style={inputStyle}/></Field>
-            <Field label="Password"><input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"
-              autoComplete={isSignup?'new-password':'current-password'}
-              onKeyDown={e=>e.key==='Enter'&&(isSignup?handleSignup():handleLogin())} style={inputStyle}/></Field>
-            {error&&<div style={{fontSize:12,color:T.red,padding:'8px 12px',background:T.red+'11',borderRadius:6}}>{error}</div>}
-            <Btn onClick={isSignup?handleSignup:handleLogin} loading={loading} style={{marginTop:2,padding:'12px',fontSize:13}}>
-              {isSignup?'Create Account':'Sign In'}
-            </Btn>
-          </div>
-        </Card>
-        {!isSignup&&<p style={{textAlign:'center',fontSize:11,color:T.text3,marginTop:14,lineHeight:1.6}}>Don't have access? Ask your administrator for the invite link.</p>}
-      </div>
-    </div>
-  );
-}
-
-// ── AVAILABILITY PICKER ───────────────────────────────────────────────────────
-// Shows a full calendar then 30-min slots when a day is selected
-function AvailabilityPicker({meeting, profile, onBack}){
-  const [busySlots,setBusySlots]=useState(new Set()); // Set of UTC ISO strings
-  const [submitted,setSubmitted]=useState(false);
-  const [loading,setLoading]=useState(true);
-  const [saving,setSaving]=useState(false);
-  const [selectedDay,setSelectedDay]=useState(null); // 'YYYY-MM-DD' in meeting tz
-  const [allBusy,setAllBusy]=useState({}); // {utcIso: count}
-  const [toast,setToast]=useState('');
-  const memberCount=useRef(0);
-
-  // Detect member's local timezone
-  const localTz=useMemo(()=>{
-    try{return Intl.DateTimeFormat().resolvedOptions().timeZone;}
-    catch{return meeting.timezone;}
-  },[meeting.timezone]);
-
-  const meetingTz=meeting.timezone;
-  const isSameZone=localTz===meetingTz;
-
-  function showToast(msg,type='success'){setToast({msg,type});setTimeout(()=>setToast(''),2500);}
-
-  useEffect(()=>{load();},[]);
-
-  async function load(){
-    setLoading(true);
-    await sb.from('meeting_members').upsert({meeting_id:meeting.id,profile_id:profile.id},{onConflict:'meeting_id,profile_id'});
-    const[{data:myA},{data:allA},{data:sub},{data:mems}]=await Promise.all([
-      sb.from('availability').select('slot_start').eq('meeting_id',meeting.id).eq('profile_id',profile.id),
-      sb.from('availability').select('slot_start').eq('meeting_id',meeting.id),
-      sb.from('submissions').select('id').eq('meeting_id',meeting.id).eq('profile_id',profile.id).maybeSingle(),
-      sb.from('meeting_members').select('profile_id').eq('meeting_id',meeting.id),
-    ]);
-    setBusySlots(new Set((myA||[]).map(r=>r.slot_start)));
-    const m={};
-    (allA||[]).forEach(r=>{m[r.slot_start]=(m[r.slot_start]||0)+1;});
-    setAllBusy(m);
-    setSubmitted(!!sub);
-    memberCount.current=(mems||[]).length;
-    setLoading(false);
-  }
-
-  // Generate days in meeting timezone for the range
-  const days=useMemo(()=>{
-    const result=[];
-    let cur=new Date(meeting.start_date+'T00:00:00');
-    const end=new Date(meeting.end_date+'T00:00:00');
-    while(cur<=end){
-      const y=cur.getFullYear(), m=String(cur.getMonth()+1).padStart(2,'0'), d=String(cur.getDate()).padStart(2,'0');
-      result.push(`${y}-${m}-${d}`);
-      cur=new Date(cur.getTime()+24*60*60*1000);
-    }
-    return result;
-  },[meeting]);
-
-  // Slots for selected day (in local tz display, stored as UTC)
-  const daySlots=useMemo(()=>{
-    if(!selectedDay) return [];
-    // Generate all 48 half-hour slots for that day in meeting timezone
-    const slots=[];
-    // Start at midnight of selectedDay in meeting tz
-    for(let h=0;h<24;h++){
-      for(let m=0;m<60;m+=30){
-        const hh=String(h).padStart(2,'0'), mm=String(m).padStart(2,'0');
-        const localStr=`${selectedDay}T${hh}:${mm}`;
-        const utcIso=toUTC(localStr, meetingTz);
-        slots.push({utcIso, localTime:`${h===0?12:h>12?h-12:h}:${mm} ${h<12?'AM':'PM'}`, h, m});
-      }
-    }
-    return slots;
-  },[selectedDay, meetingTz]);
-
-  async function toggleSlot(utcIso){
-    const isBusy=busySlots.has(utcIso);
-    setBusySlots(prev=>{const s=new Set(prev);isBusy?s.delete(utcIso):s.add(utcIso);return s;});
-    setAllBusy(prev=>({...prev,[utcIso]:(prev[utcIso]||0)+(isBusy?-1:1)}));
-    if(isBusy){
-      await sb.from('availability').delete().eq('meeting_id',meeting.id).eq('profile_id',profile.id).eq('slot_start',utcIso);
-    } else {
-      await sb.from('availability').upsert({meeting_id:meeting.id,profile_id:profile.id,slot_start:utcIso},{onConflict:'meeting_id,profile_id,slot_start'});
-    }
-  }
-
-  async function handleSubmit(){
-    setSaving(true);
-    await sb.from('submissions').upsert({meeting_id:meeting.id,profile_id:profile.id},{onConflict:'meeting_id,profile_id'});
-    setSubmitted(true);
-    showToast('Availability submitted ✓');
-    setSaving(false);
-  }
-
-  // Days with busy slot counts
-  const dayBusyCount=useMemo(()=>{
-    const m={};
-    busySlots.forEach(iso=>{
-      const day=new Date(iso).toLocaleDateString('en-CA',{timeZone:meetingTz});
-      m[day]=(m[day]||0)+1;
-    });
-    return m;
-  },[busySlots,meetingTz]);
-
-  if(loading) return(
-    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:T.bg}}>
-      <Spinner size={32}/>
-    </div>
-  );
-
-  return(
-    <div style={{minHeight:'100vh',background:T.bg}}>
-      {/* Header */}
-      <div style={{background:T.bg1,borderBottom:`1px solid ${T.border}`,padding:'0 20px',height:54,display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
-        <div style={{display:'flex',alignItems:'center',gap:10}}>
-          <button onClick={onBack} style={{background:'none',border:'none',color:T.text3,fontSize:22,cursor:'pointer'}}>←</button>
-          <div>
-            <div style={{fontSize:10,letterSpacing:3,color:T.text3,textTransform:'uppercase'}}>Mark Availability</div>
-            <div style={{fontSize:14,color:T.text,fontFamily:"'Cormorant Garamond',serif"}}>{meeting.title}</div>
-          </div>
-        </div>
-        <div style={{fontSize:11,color:T.text3,textAlign:'right'}}>
-          <div>{tzLabel(meetingTz)} meeting</div>
-          {!isSameZone&&<div style={{color:T.gold,fontSize:10}}>Your time: {tzLabel(localTz)}</div>}
-        </div>
-      </div>
-
-      <div style={{maxWidth:540,margin:'0 auto',padding:'20px 16px 80px'}}>
-        {submitted&&(
-          <div style={{background:T.green+'11',border:`1px solid ${T.green}33`,borderRadius:10,padding:'11px 14px',marginBottom:16,fontSize:13,color:T.green}}>
-            ✓ Submitted. You can still update your availability below.
-          </div>
-        )}
-
-        <div style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:10,padding:'11px 14px',marginBottom:16,fontSize:12,color:T.text2,lineHeight:1.6}}>
-          Tap a day to mark your <strong style={{color:T.text}}>busy</strong> 30-min slots. Leave slots empty if you're available.
-          {!isSameZone&&<span style={{color:T.gold}}> Times shown in both {tzLabel(meetingTz)} and {tzLabel(localTz)}.</span>}
-        </div>
-
-        {/* Day grid */}
-        {!selectedDay?(
-          <>
-            <div style={{fontSize:11,color:T.text3,letterSpacing:2,textTransform:'uppercase',marginBottom:10}}>
-              Select a day to mark busy slots
-            </div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:6}}>
-              {['S','M','T','W','T','F','S'].map((d,i)=>(
-                <div key={i} style={{textAlign:'center',fontSize:10,color:T.text3,padding:'3px 0'}}>{d}</div>
-              ))}
-            </div>
-            {/* Build calendar grid */}
-            {(()=>{
-              if(!days.length) return null;
-              const first=new Date(days[0]+'T00:00:00');
-              const blanks=first.getDay();
-              const cells=[...Array(blanks).fill(null),...days];
-              while(cells.length%7) cells.push(null);
-              return(
-                <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4}}>
-                  {cells.map((day,i)=>{
-                    if(!day) return <div key={i}/>;
-                    const busyCount=dayBusyCount[day]||0;
-                    const dow=new Date(day+'T00:00:00').getDay();
-                    const today=new Date().toLocaleDateString('en-CA');
-                    const isToday=day===today;
-                    return(
-                      <button key={day} onClick={()=>setSelectedDay(day)} style={{
-                        background:busyCount>0?T.red+'22':T.bg2,
-                        border:`1.5px solid ${busyCount>0?T.red+'66':isToday?T.gold+'66':T.border}`,
-                        borderRadius:8,padding:'8px 2px',minHeight:52,
-                        display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,
-                        cursor:'pointer',transition:'all 0.12s',
-                        opacity:1,
-                      }}>
-                        <span style={{fontSize:13,color:busyCount>0?T.red:isToday?T.gold:T.text,fontWeight:isToday?600:400}}>
-                          {parseInt(day.split('-')[2])}
-                        </span>
-                        {busyCount>0&&<span style={{fontSize:9,color:T.red}}>{busyCount}×</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          </>
-        ):(
-          <>
-            {/* Time slot view */}
-            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
-              <button onClick={()=>setSelectedDay(null)} style={{background:T.bg2,border:`1px solid ${T.border}`,borderRadius:8,padding:'6px 12px',color:T.text2,cursor:'pointer',fontSize:13}}>
-                ← Back
-              </button>
-              <div>
-                <div style={{fontSize:15,color:T.text}}>
-                  {new Date(selectedDay+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}
-                </div>
-                <div style={{fontSize:11,color:T.text3}}>{tzLabel(meetingTz)} timezone</div>
-              </div>
-            </div>
-
-            {/* Group by hour */}
-            <div style={{display:'flex',flexDirection:'column',gap:3}}>
-              {Array.from({length:24},(_,h)=>{
-                const hourSlots=daySlots.filter(s=>s.h===h);
-                const hourLabel=new Date(`2000-01-01T${String(h).padStart(2,'0')}:00:00`).toLocaleString('en-US',{hour:'numeric',hour12:true});
-                return(
-                  <div key={h}>
-                    <div style={{fontSize:10,color:T.text3,padding:'6px 0 2px',letterSpacing:1}}>{hourLabel}</div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:3}}>
-                      {hourSlots.map(({utcIso,h:sh,m:sm})=>{
-                        const isBusy=busySlots.has(utcIso);
-                        const othersCount=allBusy[utcIso]||0;
-                        const meetingTime=`${String(sh).padStart(2,'0')}:${String(sm).padStart(2,'0')} ${sh<12?'AM':'PM'}`;
-                        const localTime=isSameZone?null:displayTime(utcIso,localTz);
-                        return(
-                          <button key={utcIso} onClick={()=>toggleSlot(utcIso)} style={{
-                            background:isBusy?T.red+'33':T.bg2,
-                            border:`1px solid ${isBusy?T.red+'66':T.border}`,
-                            borderRadius:7,padding:'8px 10px',cursor:'pointer',
-                            display:'flex',alignItems:'center',justifyContent:'space-between',
-                            transition:'all 0.1s',
-                          }}>
-                            <div style={{textAlign:'left'}}>
-                              <div style={{fontSize:13,color:isBusy?T.red:T.text,fontWeight:isBusy?500:400}}>{meetingTime}</div>
-                              {localTime&&<div style={{fontSize:10,color:T.gold,marginTop:1}}>{localTime} {tzLabel(localTz)}</div>}
-                            </div>
-                            <div style={{display:'flex',alignItems:'center',gap:6}}>
-                              {othersCount>0&&!isBusy&&(
-                                <span style={{fontSize:9,color:T.red,background:T.red+'22',borderRadius:4,padding:'1px 5px'}}>{othersCount}</span>
-                              )}
-                              {isBusy&&<span style={{fontSize:10,color:T.red}}>Busy</span>}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        <Btn onClick={handleSubmit} loading={saving} style={{width:'100%',marginTop:24,padding:'14px',fontSize:13}}>
-          {submitted?'Update Submission':'Submit Availability'}
-        </Btn>
-        <Btn variant="ghost" onClick={onBack} style={{width:'100%',marginTop:8,padding:'10px',fontSize:12,color:T.text3}}>
-          ← Back to Dashboard
-        </Btn>
-      </div>
-      <Toast msg={toast.msg} type={toast.type}/>
-    </div>
-  );
-}
-
-// ── BEST SLOTS PAGE ───────────────────────────────────────────────────────────
-function BestSlotsPage({meeting,profile,onBack}){
-  const [data,setData]=useState(null);
-  const [loading,setLoading]=useState(true);
-  const [viewTz,setViewTz]=useState(meeting.timezone);
-
-  useEffect(()=>{load();},[]);
-
-  async function load(){
-    const[{data:members},{data:avail},{data:subs}]=await Promise.all([
-      sb.from('meeting_members').select('profile_id,profiles(full_name)').eq('meeting_id',meeting.id),
-      sb.from('availability').select('slot_start,profile_id').eq('meeting_id',meeting.id),
-      sb.from('submissions').select('profile_id,profiles(full_name)').eq('meeting_id',meeting.id),
-    ]);
-    const total=(members||[]).length;
-    // Count busy per slot
-    const busyMap={};
-    (avail||[]).forEach(r=>{busyMap[r.slot_start]=(busyMap[r.slot_start]||0)+1;});
-    // Build all possible slots
-    const slots=getSlotsForRange(meeting.start_date,meeting.end_date,meeting.timezone);
-    // Score each slot: available = total - busy
-    const scored=slots.map(slotDate=>{
-      const iso=slotDate.toISOString();
-      const busy=busyMap[iso]||0;
-      return {iso, available:total-busy, busy, pct:total>0?(total-busy)/total:0};
-    }).sort((a,b)=>b.available-a.available||b.pct-a.pct);
-    const subIds=new Set((subs||[]).map(s=>s.profile_id));
-    const pending=(members||[]).filter(m=>!subIds.has(m.profile_id)).map(m=>m.profiles?.full_name||'?');
-    setData({total,scored:scored.slice(0,50),pending});
-    setLoading(false);
-  }
-
-  // Group top slots by day
-  const grouped=useMemo(()=>{
-    if(!data) return [];
-    const m={};
-    data.scored.forEach(s=>{
-      const day=new Date(s.iso).toLocaleDateString('en-CA',{timeZone:viewTz});
-      if(!m[day]) m[day]=[];
-      m[day].push(s);
-    });
-    return Object.entries(m).sort((a,b)=>{
-      const aMax=Math.max(...a[1].map(x=>x.available));
-      const bMax=Math.max(...b[1].map(x=>x.available));
-      return bMax-aMax;
-    }).slice(0,10);
-  },[data,viewTz]);
-
-  return(
-    <div style={{minHeight:'100vh',background:T.bg}}>
-      <div style={{background:T.bg1,borderBottom:`1px solid ${T.border}`,padding:'0 20px',height:54,display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
-        <div style={{display:'flex',alignItems:'center',gap:10}}>
-          <button onClick={onBack} style={{background:'none',border:'none',color:T.text3,fontSize:22,cursor:'pointer'}}>←</button>
-          <div>
-            <div style={{fontSize:10,letterSpacing:3,color:T.text3,textTransform:'uppercase'}}>Best Slots</div>
-            <div style={{fontSize:14,color:T.text,fontFamily:"'Cormorant Garamond',serif"}}>{meeting.title}</div>
-          </div>
-        </div>
-        <select value={viewTz} onChange={e=>setViewTz(e.target.value)}
-          style={{...selectStyle,width:'auto',fontSize:11,padding:'5px 10px',background:T.bg2}}>
-          {TIMEZONES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
-      </div>
-
-      {loading?(
-        <div style={{display:'flex',justifyContent:'center',padding:60}}><Spinner size={32}/></div>
-      ):(
-        <div style={{maxWidth:600,margin:'0 auto',padding:'20px 16px 60px'}}>
-          {data.pending.length>0&&(
-            <div style={{background:T.gold+'11',border:`1px solid ${T.gold}33`,borderRadius:10,padding:'11px 14px',marginBottom:16,fontSize:12,color:T.text2}}>
-              ⏳ <strong style={{color:T.text}}>{data.pending.length} member{data.pending.length>1?'s':''}</strong> pending: {data.pending.slice(0,4).join(', ')}{data.pending.length>4?` +${data.pending.length-4} more`:''}
-            </div>
-          )}
-          <div style={{display:'flex',gap:10,marginBottom:20,flexWrap:'wrap'}}>
-            <div style={{fontSize:12,color:T.text3}}>Showing top slots ranked by most members available · {data.total} total members</div>
-          </div>
-          {grouped.length===0?(
-            <div style={{textAlign:'center',padding:48,color:T.text2}}>
-              <div style={{fontSize:36,marginBottom:10}}>📭</div>
-              <div>No availability data yet. Share the meeting link with members.</div>
-            </div>
-          ):(
-            <div style={{display:'flex',flexDirection:'column',gap:16}}>
-              {grouped.map(([day,slots],dayIdx)=>{
-                const dayLabel=new Date(day+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-                const bestAvail=Math.max(...slots.map(s=>s.available));
-                return(
-                  <div key={day}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                      <div style={{fontSize:14,color:dayIdx===0?T.gold:T.text,fontFamily:"'Cormorant Garamond',serif"}}>
-                        {dayIdx===0&&'★ '}{dayLabel}
-                      </div>
-                      <div style={{fontSize:11,color:T.text3}}>Best: {bestAvail}/{data.total} free</div>
-                    </div>
-                    <div style={{display:'flex',flexDirection:'column',gap:3}}>
-                      {slots.slice(0,6).map((s,idx)=>{
-                        const pct=s.pct;
-                        const color=pct===1?T.green:pct>=0.8?'#84cc16':pct>=0.6?T.gold:'#f97316';
-                        const timeStr=displayTime(s.iso,viewTz);
-                        const meetTz=viewTz!==meeting.timezone?displayTime(s.iso,meeting.timezone):null;
-                        return(
-                          <div key={s.iso} style={{background:idx===0&&dayIdx===0?T.green+'11':T.bg1,border:`1px solid ${idx===0&&dayIdx===0?T.green+'44':T.border}`,borderRadius:9,padding:'10px 14px',display:'flex',alignItems:'center',gap:12}}>
-                            <div style={{minWidth:80}}>
-                              <div style={{fontSize:15,color:idx===0&&dayIdx===0?T.green:T.text,fontWeight:500}}>{timeStr}</div>
-                              {meetTz&&<div style={{fontSize:10,color:T.text3}}>{meetTz} {tzLabel(meeting.timezone)}</div>}
-                            </div>
-                            <div style={{flex:1}}>
-                              <div style={{height:5,background:T.bg3,borderRadius:3,overflow:'hidden'}}>
-                                <div style={{width:`${pct*100}%`,height:'100%',background:color,borderRadius:3,transition:'width 0.4s'}}/>
-                              </div>
-                            </div>
-                            <div style={{fontSize:13,color,minWidth:60,textAlign:'right'}}>
-                              {s.available}/{data.total}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── DASHBOARD ─────────────────────────────────────────────────────────────────
-function Dashboard({profile}){
-  const [meetings,setMeetings]=useState([]);
-  const [loading,setLoading]=useState(true);
-  const [showCreate,setShowCreate]=useState(false);
-  const [showAdmin,setShowAdmin]=useState(false);
-  const [view,setView]=useState(null); // {type:'availability'|'bestslots', meeting}
-  const isSA=profile.is_super_admin;
-  const isDeptAdmin=useRef(false);
-
-  useEffect(()=>{loadMeetings();},[]);
-
-  async function loadMeetings(){
-    setLoading(true);
-    // Check if dept admin
-    const{data:da}=await sb.from('department_admins').select('id').eq('profile_id',profile.id).limit(1).maybeSingle();
-    isDeptAdmin.current=!!da;
-    // Load meetings user can see
-    const{data}=await sb.from('meetings').select('*,departments(name)').order('created_at',{ascending:false});
-    setMeetings(data||[]);
-    setLoading(false);
-  }
-
-  if(view?.type==='availability') return <AvailabilityPicker meeting={view.meeting} profile={profile} onBack={()=>{setView(null);loadMeetings();}}/>;
-  if(view?.type==='bestslots')    return <BestSlotsPage meeting={view.meeting} profile={profile} onBack={()=>setView(null)}/>;
-
-  const canCreate=isSA||isDeptAdmin.current;
-
-  return(
-    <div style={{minHeight:'100vh',background:T.bg}}>
-      <div style={{background:T.bg1,borderBottom:`1px solid ${T.border}`,padding:'0 20px',height:54,display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
-        <div>
-          <div style={{fontSize:10,letterSpacing:3,color:T.text3,textTransform:'uppercase'}}>KPS Jewels</div>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,color:T.text}}>Meeting Planner</div>
-        </div>
-        <div style={{display:'flex',gap:8,alignItems:'center'}}>
-          {isSA&&<Btn variant="ghost" onClick={()=>setShowAdmin(true)} style={{fontSize:18,padding:'4px 8px'}}>⚙</Btn>}
-          <div style={{fontSize:12,color:T.text3,padding:'4px 10px',border:`1px solid ${T.border}`,borderRadius:6}}>{profile.full_name}</div>
-          <Btn variant="ghost" onClick={()=>sb.auth.signOut()} style={{fontSize:12,color:T.text3,padding:'4px 8px'}}>Sign out</Btn>
-        </div>
-      </div>
-
-      <div style={{maxWidth:640,margin:'0 auto',padding:'24px 16px 80px'}}>
-        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:24}} className="fade-up">
-          <div>
-            <div style={{fontSize:11,letterSpacing:3,color:T.text3,textTransform:'uppercase',marginBottom:4}}>Welcome back</div>
-            <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:400,color:T.text}}>{profile.full_name}</h1>
-          </div>
-          {canCreate&&<Btn onClick={()=>setShowCreate(true)}>+ New Meeting</Btn>}
-        </div>
-
-        {loading?(
-          <div style={{display:'flex',justifyContent:'center',padding:40}}><Spinner/></div>
-        ):meetings.length===0?(
-          <Card style={{padding:48,textAlign:'center'}}>
-            <div style={{fontSize:36,marginBottom:10}}>📅</div>
-            <div style={{fontSize:16,color:T.text2,fontFamily:"'Cormorant Garamond',serif"}}>No meetings yet</div>
-            <div style={{fontSize:13,color:T.text3,marginTop:6}}>
-              {canCreate?'Create your first meeting to get started':'You haven\'t been added to any meetings yet'}
-            </div>
-          </Card>
-        ):(
-          <div style={{display:'flex',flexDirection:'column',gap:10}}>
-            {meetings.map(m=>(
-              <MeetingCard key={m.id} meeting={m} profile={profile}
-                onMarkDates={()=>setView({type:'availability',meeting:m})}
-                onBestSlots={()=>setView({type:'bestslots',meeting:m})}
-                onRefresh={loadMeetings}/>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {showCreate&&<CreateMeetingModal profile={profile} onClose={()=>setShowCreate(false)} onCreated={()=>{setShowCreate(false);loadMeetings();}}/>}
-      {showAdmin&&<SuperAdminModal profile={profile} onClose={()=>setShowAdmin(false)}/>}
-    </div>
-  );
-}
-
-// ── MEETING CARD ──────────────────────────────────────────────────────────────
-function MeetingCard({meeting,profile,onMarkDates,onBestSlots,onRefresh}){
-  const [stats,setStats]=useState(null);
-  const [copied,setCopied]=useState(false);
-  const [confirmDelete,setConfirmDelete]=useState(false);
-  const [deleting,setDeleting]=useState(false);
-  const shareUrl=`${window.location.origin}${window.location.pathname}?m=${meeting.share_token}`;
-
-  useEffect(()=>{
-    Promise.all([
-      sb.from('meeting_members').select('profile_id',{count:'exact'}).eq('meeting_id',meeting.id),
-      sb.from('submissions').select('profile_id',{count:'exact'}).eq('meeting_id',meeting.id),
-    ]).then(([{count:total},{count:submitted}])=>setStats({total:total||0,submitted:submitted||0}));
-  },[]);
-
-  async function deleteMeeting(){
-    setDeleting(true);
-    await sb.from('meetings').delete().eq('id',meeting.id);
-    onRefresh();
-  }
-
-  return(
-    <Card style={{padding:0,overflow:'hidden'}}>
-      <div style={{padding:'14px 16px'}}>
-        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10}}>
-          <div style={{flex:1}}>
-            <div style={{fontSize:10,color:T.text3,letterSpacing:1,textTransform:'uppercase',marginBottom:3}}>
-              {meeting.departments?.name||'—'} · {tzLabel(meeting.timezone)} · {meeting.start_date} → {meeting.end_date}
-            </div>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,color:T.text,marginBottom:3}}>{meeting.title}</div>
-            {meeting.description&&<div style={{fontSize:12,color:T.text2}}>{meeting.description}</div>}
-          </div>
-          {stats&&(
-            <div style={{textAlign:'right',flexShrink:0}}>
-              <div style={{fontSize:18,color:stats.submitted===stats.total&&stats.total>0?T.green:T.text}}>{stats.submitted}/{stats.total}</div>
-              <div style={{fontSize:9,color:T.text3,letterSpacing:1}}>SUBMITTED</div>
-            </div>
-          )}
-        </div>
-        {stats&&stats.total>0&&(
-          <div style={{height:3,background:T.bg3,borderRadius:2,marginTop:10}}>
-            <div style={{width:`${(stats.submitted/stats.total)*100}%`,height:'100%',background:T.gold,borderRadius:2,transition:'width 0.5s'}}/>
-          </div>
-        )}
-      </div>
-      <div style={{borderTop:`1px solid ${T.border}`,padding:'9px 14px',display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
-        <Btn variant="secondary" onClick={onMarkDates} style={{fontSize:12,padding:'6px 12px'}}>Mark My Slots</Btn>
-        <Btn variant="secondary" onClick={()=>{navigator.clipboard.writeText(shareUrl);setCopied(true);setTimeout(()=>setCopied(false),2000);}} style={{fontSize:12,padding:'6px 12px'}}>{copied?'Copied ✓':'Copy Link'}</Btn>
-        <Btn variant="secondary" onClick={onBestSlots} style={{fontSize:12,padding:'6px 12px'}}>Best Slots</Btn>
-        {profile.is_super_admin&&(
-          confirmDelete?(
-            <div style={{marginLeft:'auto',display:'flex',gap:6,alignItems:'center'}}>
-              <span style={{fontSize:11,color:T.text3}}>Sure?</span>
-              <Btn variant="danger" loading={deleting} onClick={deleteMeeting} style={{fontSize:11,padding:'5px 10px'}}>Yes</Btn>
-              <Btn variant="secondary" onClick={()=>setConfirmDelete(false)} style={{fontSize:11,padding:'5px 10px'}}>No</Btn>
-            </div>
-          ):(
-            <Btn variant="danger" onClick={()=>setConfirmDelete(true)} style={{fontSize:12,padding:'6px 12px',marginLeft:'auto'}}>Delete</Btn>
-          )
-        )}
-      </div>
-    </Card>
-  );
-}
-
-// ── CREATE MEETING MODAL ──────────────────────────────────────────────────────
-function CreateMeetingModal({profile,onClose,onCreated}){
-  const [depts,setDepts]=useState([]);
-  const [members,setMembers]=useState([]); // dept members to invite
-  const [selectedMembers,setSelectedMembers]=useState(new Set());
-  const [form,setForm]=useState({title:'',desc:'',deptId:'',startDate:'',endDate:'',timezone:'Asia/Kolkata',durationMins:60});
-  const [loading,setLoading]=useState(false);
-  const [error,setError]=useState('');
-
-  useEffect(()=>{
-    sb.from('departments').select('*').then(({data})=>{
-      setDepts(data||[]);
-      if(data&&data[0]) setForm(f=>({...f,deptId:data[0].id}));
-    });
-  },[]);
-
-  useEffect(()=>{
-    if(!form.deptId) return;
-    sb.from('department_members').select('profile_id,profiles(full_name,email)').eq('department_id',form.deptId)
-      .then(({data})=>{
-        setMembers(data||[]);
-        setSelectedMembers(new Set((data||[]).map(m=>m.profile_id)));
-      });
-  },[form.deptId]);
-
-  const f=(k,v)=>setForm(p=>({...p,[k]:v}));
-
-  async function create(){
-    if(!form.title.trim()) return setError('Title required');
-    if(!form.startDate||!form.endDate) return setError('Start and end dates required');
-    if(new Date(form.startDate)>new Date(form.endDate)) return setError('End date must be after start date');
-    setLoading(true);setError('');
-    const{data:m,error:e}=await sb.from('meetings').insert({
-      title:form.title.trim(),description:form.desc.trim()||null,
-      department_id:form.deptId,
-      start_date:form.startDate,end_date:form.endDate,
-      timezone:form.timezone,duration_mins:form.durationMins,
-      created_by:profile.id
-    }).select().single();
-    if(e){setError(e.message);setLoading(false);return;}
-    // Add selected members
-    const membersToAdd=[...selectedMembers].map(pid=>({meeting_id:m.id,profile_id:pid}));
-    if(membersToAdd.length) await sb.from('meeting_members').insert(membersToAdd);
-    onCreated(m);
-  }
-
-  return(
-    <Modal title="Create New Meeting" onClose={onClose} width={500}>
-      <div style={{display:'flex',flexDirection:'column',gap:14}}>
-        <Field label="Meeting Title">
-          <input value={form.title} onChange={e=>f('title',e.target.value)} placeholder="e.g. Q2 Review" style={inputStyle}/>
-        </Field>
-        <Field label="Description (optional)">
-          <textarea value={form.desc} onChange={e=>f('desc',e.target.value)} rows={2}
-            style={{...inputStyle,resize:'vertical'}}/>
-        </Field>
-        <Field label="Department">
-          <select value={form.deptId} onChange={e=>f('deptId',e.target.value)} style={selectStyle}>
-            {depts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-        </Field>
-        <Field label="Meeting Timezone">
-          <select value={form.timezone} onChange={e=>f('timezone',e.target.value)} style={selectStyle}>
-            {TIMEZONES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-        </Field>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-          <Field label="Start Date">
-            <input type="date" value={form.startDate} onChange={e=>f('startDate',e.target.value)} style={inputStyle}/>
-          </Field>
-          <Field label="End Date">
-            <input type="date" value={form.endDate} onChange={e=>f('endDate',e.target.value)} style={inputStyle}/>
-          </Field>
-        </div>
-        <Field label="Desired Meeting Duration">
-          <select value={form.durationMins} onChange={e=>f('durationMins',parseInt(e.target.value))} style={selectStyle}>
-            {[30,60,90,120,180].map(m=><option key={m} value={m}>{m<60?`${m} min`:`${m/60} hr${m>60?'s':''}`}</option>)}
-          </select>
-        </Field>
-        {members.length>0&&(
-          <Field label={`Invite Members (${selectedMembers.size}/${members.length} selected)`}>
-            <div style={{background:T.bg2,borderRadius:8,padding:'8px',maxHeight:160,overflowY:'auto',display:'flex',flexDirection:'column',gap:4}}>
-              {members.map(({profile_id:pid,profiles:p})=>{
-                const sel=selectedMembers.has(pid);
-                return(
-                  <div key={pid} onClick={()=>setSelectedMembers(prev=>{const s=new Set(prev);sel?s.delete(pid):s.add(pid);return s;})}
-                    style={{display:'flex',alignItems:'center',gap:10,padding:'6px 8px',borderRadius:6,background:sel?T.gold+'11':T.bg3,cursor:'pointer',border:`1px solid ${sel?T.gold+'44':T.border}`}}>
-                    <div style={{width:16,height:16,borderRadius:4,border:`1.5px solid ${sel?T.gold:T.border2}`,background:sel?T.gold:'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                      {sel&&<span style={{fontSize:10,color:'#0c0a08',lineHeight:1}}>✓</span>}
-                    </div>
-                    <div>
-                      <div style={{fontSize:13,color:T.text}}>{p?.full_name||'?'}</div>
-                      <div style={{fontSize:10,color:T.text3}}>{p?.email||''}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Field>
-        )}
-        {error&&<div style={{fontSize:12,color:T.red,padding:'8px 12px',background:T.red+'11',borderRadius:6}}>{error}</div>}
-        <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:4}}>
-          <Btn variant="secondary" onClick={onClose}>Cancel</Btn>
-          <Btn onClick={create} loading={loading}>Create Meeting</Btn>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-// ── SUPER ADMIN MODAL ─────────────────────────────────────────────────────────
-function SuperAdminModal({profile,onClose}){
-  const [tab,setTab]=useState('invite');
-  const [users,setUsers]=useState([]);
-  const [depts,setDepts]=useState([]);
-  const [loading,setLoading]=useState(true);
-  const [toast,setToast]=useState('');
-  const [newDept,setNewDept]=useState('');
-  const [confirmDelete,setConfirmDelete]=useState(null);
-
-  function showToast(msg,type='success'){setToast({msg,type});setTimeout(()=>setToast(''),2500);}
-
-  useEffect(()=>{loadAll();},[]);
-
-  async function loadAll(){
-    setLoading(true);
-    const[{data:u},{data:d}]=await Promise.all([
-      sb.from('profiles').select('*').order('full_name'),
-      sb.from('departments').select('*,department_admins(profile_id,profiles(full_name)),department_members(profile_id,profiles(full_name,email))').order('name'),
-    ]);
-    setUsers(u||[]);setDepts(d||[]);
-    setLoading(false);
-  }
-
-  // Use the set_super_admin RPC to bypass RLS
-  async function toggleSuperAdmin(u){
-    const{error:e}=await sb.rpc('set_super_admin',{target_id:u.id,value:!u.is_super_admin});
-    if(e){showToast('Error: '+e.message,'error');return;}
-    setUsers(prev=>prev.map(x=>x.id===u.id?{...x,is_super_admin:!x.is_super_admin}:x));
-    showToast(`${u.full_name} ${!u.is_super_admin?'is now a':'is no longer a'} super admin`);
-  }
-
-  async function addDept(){
-    if(!newDept.trim()) return;
-    const{data}=await sb.from('departments').insert({name:newDept.trim(),created_by:profile.id}).select().single();
-    if(data){setNewDept('');loadAll();}
-  }
-
-  async function toggleDeptAdmin(deptId,userId,isAdmin){
-    if(isAdmin) await sb.from('department_admins').delete().eq('department_id',deptId).eq('profile_id',userId);
-    else await sb.from('department_admins').insert({department_id:deptId,profile_id:userId});
-    loadAll();
-  }
-
-  async function toggleDeptMember(deptId,userId,isMember){
-    if(isMember) await sb.from('department_members').delete().eq('department_id',deptId).eq('profile_id',userId);
-    else await sb.from('department_members').insert({department_id:deptId,profile_id:userId,added_by:profile.id});
-    loadAll();
-  }
-
-  async function deleteUser(u){
-    // Remove from all dept memberships, meetings, availability
-    await sb.from('department_members').delete().eq('profile_id',u.id);
-    await sb.from('meeting_members').delete().eq('profile_id',u.id);
-    await sb.from('availability').delete().eq('profile_id',u.id);
-    await sb.from('submissions').delete().eq('profile_id',u.id);
-    await sb.from('profiles').delete().eq('id',u.id);
-    setConfirmDelete(null);
-    loadAll();
-    showToast(`${u.full_name} removed`);
-  }
-
-  const TABS=[['invite','Invite'],['members','Members'],['departments','Departments']];
-
-  return(
-    <Modal title="Super Admin" onClose={onClose} width={580}>
-      <div style={{display:'flex',gap:0,marginBottom:20,background:T.bg2,borderRadius:8,padding:3}}>
-        {TABS.map(([v,l])=>(
-          <button key={v} onClick={()=>setTab(v)}
-            style={{flex:1,padding:'8px',borderRadius:6,border:'none',background:tab===v?T.bg3:'transparent',color:tab===v?T.text:T.text3,fontSize:12,letterSpacing:1,textTransform:'uppercase',cursor:'pointer'}}>
-            {l}
-          </button>
-        ))}
-      </div>
-
-      {/* INVITE TAB */}
-      {tab==='invite'&&<InviteTab profile={profile} showToast={showToast}/>}
-
-      {loading&&tab!=='invite'?<div style={{display:'flex',justifyContent:'center',padding:24}}><Spinner/></div>:<>
-
-      {/* MEMBERS TAB */}
-      {tab==='members'&&(
-        <div style={{display:'flex',flexDirection:'column',gap:8}}>
-          <div style={{fontSize:11,color:T.text3,marginBottom:4}}>Toggle super admin · remove members</div>
-          {users.map(u=>(
-            <div key={u.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 12px',background:T.bg2,borderRadius:8,gap:10}}>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:14,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{u.full_name}</div>
-                <div style={{fontSize:11,color:T.text3}}>{u.email}</div>
-              </div>
-              <div style={{display:'flex',gap:6,alignItems:'center',flexShrink:0}}>
-                {u.is_super_admin&&<span style={{fontSize:10,color:T.gold,letterSpacing:1}}>SA</span>}
-                {u.id!==profile.id&&(
-                  <>
-                    <Btn variant={u.is_super_admin?'danger':'secondary'} onClick={()=>toggleSuperAdmin(u)} style={{fontSize:11,padding:'4px 10px'}}>
-                      {u.is_super_admin?'Revoke SA':'Make SA'}
-                    </Btn>
-                    {confirmDelete?.id===u.id?(
-                      <div style={{display:'flex',gap:4,alignItems:'center'}}>
-                        <span style={{fontSize:11,color:T.text3}}>Sure?</span>
-                        <Btn variant="danger" onClick={()=>deleteUser(u)} style={{fontSize:11,padding:'4px 8px'}}>Yes</Btn>
-                        <Btn variant="secondary" onClick={()=>setConfirmDelete(null)} style={{fontSize:11,padding:'4px 8px'}}>No</Btn>
-                      </div>
-                    ):(
-                      <Btn variant="danger" onClick={()=>setConfirmDelete(u)} style={{fontSize:11,padding:'4px 8px'}}>🗑</Btn>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* DEPARTMENTS TAB */}
-      {tab==='departments'&&(
-        <div>
-          <div style={{display:'flex',gap:8,marginBottom:16}}>
-            <input value={newDept} onChange={e=>setNewDept(e.target.value)} placeholder="New department name…"
-              onKeyDown={e=>e.key==='Enter'&&addDept()} style={{...inputStyle,flex:1}}/>
-            <Btn onClick={addDept}>Add</Btn>
-          </div>
-          <div style={{display:'flex',flexDirection:'column',gap:14}}>
-            {depts.map(d=>{
-              const adminIds=new Set((d.department_admins||[]).map(a=>a.profile_id));
-              const memberIds=new Set((d.department_members||[]).map(m=>m.profile_id));
-              return(
-                <div key={d.id} style={{background:T.bg2,borderRadius:10,padding:'14px'}}>
-                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:T.text,marginBottom:12}}>{d.name}</div>
-                  <div style={{fontSize:11,color:T.text3,letterSpacing:1,textTransform:'uppercase',marginBottom:8}}>Members & Admins</div>
-                  <div style={{display:'flex',flexDirection:'column',gap:5,maxHeight:200,overflowY:'auto'}}>
-                    {users.map(u=>{
-                      const isAdmin=adminIds.has(u.id);
-                      const isMember=memberIds.has(u.id);
-                      return(
-                        <div key={u.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'5px 8px',background:T.bg3,borderRadius:7}}>
-                          <div>
-                            <span style={{fontSize:13,color:isMember||isAdmin?T.text:T.text3}}>{u.full_name}</span>
-                            {isAdmin&&<span style={{fontSize:10,color:T.gold,marginLeft:8}}>Admin</span>}
-                          </div>
-                          <div style={{display:'flex',gap:5}}>
-                            <button onClick={()=>toggleDeptMember(d.id,u.id,isMember)}
-                              style={{background:isMember?T.green+'22':'transparent',border:`1px solid ${isMember?T.green+'44':T.border2}`,borderRadius:5,padding:'3px 8px',color:isMember?T.green:T.text3,fontSize:11,cursor:'pointer'}}>
-                              {isMember?'✓ Member':'+ Add'}
-                            </button>
-                            <button onClick={()=>toggleDeptAdmin(d.id,u.id,isAdmin)}
-                              style={{background:isAdmin?T.gold+'22':'transparent',border:`1px solid ${isAdmin?T.gold+'44':T.border2}`,borderRadius:5,padding:'3px 8px',color:isAdmin?T.gold:T.text3,fontSize:11,cursor:'pointer'}}>
-                              {isAdmin?'✓ Admin':'Admin'}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-      </>}
-      <Toast msg={toast.msg} type={toast.type}/>
-    </Modal>
-  );
-}
-
-// ── INVITE TAB ────────────────────────────────────────────────────────────────
-function InviteTab({profile,showToast}){
-  const [activeCode,setActiveCode]=useState(null);
-  const [loading,setLoading]=useState(true);
-  const [generating,setGenerating]=useState(false);
-  const [copied,setCopied]=useState(false);
-
-  useEffect(()=>{load();},[]);
-
-  async function load(){
-    setLoading(true);
-    const{data}=await sb.from('invite_codes').select('*').order('created_at',{ascending:false}).limit(1).maybeSingle();
-    setActiveCode(data);setLoading(false);
-  }
-
-  async function generate(){
-    setGenerating(true);
-    await sb.from('invite_codes').delete().neq('id','00000000-0000-0000-0000-000000000000');
-    const code=Math.random().toString(36).slice(2,10).toUpperCase();
-    const{data}=await sb.from('invite_codes').insert({
-      code,created_by:profile.id,
-      expires_at:new Date(Date.now()+48*60*60*1000).toISOString()
-    }).select().single();
-    setActiveCode(data);setGenerating(false);
-    showToast('New invite link generated ✓');
-  }
-
-  function copyLink(){
-    const url=`${window.location.origin}${window.location.pathname}?join=${activeCode.code}`;
-    navigator.clipboard.writeText(url);
-    setCopied(true);setTimeout(()=>setCopied(false),2000);
-  }
-
-  function timeLeft(exp){
-    const ms=new Date(exp)-new Date();
-    if(ms<=0) return 'Expired';
-    const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);
-    return `${h}h ${m}m remaining`;
-  }
-
-  if(loading) return <div style={{display:'flex',justifyContent:'center',padding:24}}><Spinner/></div>;
-
-  const isExpired=activeCode&&new Date(activeCode.expires_at)<new Date();
-  const url=activeCode?`${window.location.origin}${window.location.pathname}?join=${activeCode.code}`:'';
-
-  return(
-    <div style={{display:'flex',flexDirection:'column',gap:14}}>
-      {activeCode&&!isExpired?(
-        <div style={{background:T.bg2,borderRadius:10,padding:'16px'}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-            <div style={{fontSize:13,color:T.text}}>Active Invite Link</div>
-            <div style={{fontSize:11,color:T.green,background:T.green+'11',padding:'3px 10px',borderRadius:10}}>{timeLeft(activeCode.expires_at)}</div>
-          </div>
-          <div style={{background:T.bg3,border:`1px solid ${T.border2}`,borderRadius:8,padding:'10px 12px',fontSize:11,color:T.gold,fontFamily:'monospace',wordBreak:'break-all',marginBottom:12}}>{url}</div>
-          <div style={{display:'flex',gap:8}}>
-            <Btn onClick={copyLink} style={{flex:1,padding:'10px',fontSize:12}}>{copied?'Copied ✓':'Copy Link'}</Btn>
-            <Btn variant="danger" onClick={generate} loading={generating} style={{padding:'10px 14px',fontSize:12}}>Regenerate</Btn>
-          </div>
-        </div>
-      ):(
-        <div style={{background:T.bg2,borderRadius:10,padding:'20px',textAlign:'center'}}>
-          <div style={{fontSize:32,marginBottom:10}}>{activeCode?'⏰':'🔗'}</div>
-          <div style={{fontSize:14,color:T.text,marginBottom:6}}>{activeCode?'Link expired':'No active invite link'}</div>
-          <div style={{fontSize:12,color:T.text3,marginBottom:16,lineHeight:1.6}}>Generate a link valid for 48 hours to share with new members.</div>
-          <Btn onClick={generate} loading={generating} style={{margin:'0 auto',padding:'11px 24px'}}>Generate Invite Link</Btn>
-        </div>
-      )}
-      <div style={{background:T.bg2,borderRadius:8,padding:'12px 14px',fontSize:11,color:T.text3,lineHeight:1.7}}>
-        💡 Links expire after <strong style={{color:T.text2}}>48 hours</strong>. Generating a new link immediately invalidates the old one.
-      </div>
-    </div>
-  );
-}
-
-// ── APP ROOT ──────────────────────────────────────────────────────────────────
-function App(){
-  const [session,setSession]=useState(null);
-  const [profile,setProfile]=useState(null);
-  const [loading,setLoading]=useState(true);
-  const [meetingToken,setMeetingToken]=useState(null);
-
-  useEffect(()=>{
-    const params=new URLSearchParams(window.location.search);
-    const m=params.get('m');
-    if(m) setMeetingToken(m);
-  },[]);
-
-  useEffect(()=>{
-    sb.auth.getSession().then(({data:{session}})=>{
-      setSession(session);
-      if(session) loadProfile(session.user.id);
-      else setLoading(false);
-    });
-    const{data:{subscription}}=sb.auth.onAuthStateChange((_,s)=>{
-      setSession(s);
-      if(s) loadProfile(s.user.id);
-      else{setProfile(null);setLoading(false);}
-    });
-    return()=>subscription.unsubscribe();
-  },[]);
-
-  async function loadProfile(uid){
-    setLoading(true);
-    const{data}=await sb.from('profiles').select('*').eq('id',uid).single();
-    // Auto-promote Shanay
-    if(data&&data.email==='sanghvishanay7@gmail.com'&&!data.is_super_admin){
-      await sb.rpc('set_super_admin',{target_id:uid,value:true});
-      data.is_super_admin=true;
-    }
-    setProfile(data);
-    setLoading(false);
-  }
-
-  if(loading) return(
-    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:T.bg,gap:16}}>
-      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:T.text2,letterSpacing:2}}>KPS Jewels · Meeting Planner</div>
-      <Spinner size={28}/>
-    </div>
-  );
-
-  if(!session||!profile) return <AuthScreen/>;
-
-  // Meeting link flow
-  if(meetingToken){
-    // Find meeting by token then show availability picker
-    return <MeetingTokenRedirect token={meetingToken} profile={profile} onBack={()=>setMeetingToken(null)}/>;
-  }
-
-  return <Dashboard profile={profile}/>;
-}
-
-function MeetingTokenRedirect({token,profile,onBack}){
-  const [meeting,setMeeting]=useState(null);
-  const [err,setErr]=useState('');
-  useEffect(()=>{
-    sb.from('meetings').select('*,departments(name)').eq('share_token',token).single()
-      .then(({data,error})=>{
-        if(error||!data) setErr('Meeting not found or link is invalid.');
-        else setMeeting(data);
-      });
-  },[token]);
-  if(err) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:T.bg,color:T.text2,fontSize:14}}>{err}</div>;
-  if(!meeting) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:T.bg}}><Spinner size={32}/></div>;
-  return <AvailabilityPicker meeting={meeting} profile={profile} onBack={onBack}/>;
-}
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
