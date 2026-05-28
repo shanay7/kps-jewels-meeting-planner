@@ -292,7 +292,18 @@ function AvailabilityPicker({ meeting, profile, onBack }) {
     }
   }, [meeting.timezone]);
   const meetingTz = meeting.timezone;
-  const isSameZone = localTz === meetingTz;
+  const isSameZone = useMemo(() => {
+    try {
+      const now = /* @__PURE__ */ new Date();
+      const getOffset = (tz) => {
+        const s = new Intl.DateTimeFormat("en", { timeZone: tz, timeZoneName: "shortOffset" }).formatToParts(now);
+        return s.find((p) => p.type === "timeZoneName")?.value || "";
+      };
+      return getOffset(localTz) === getOffset(meetingTz);
+    } catch {
+      return localTz === meetingTz;
+    }
+  }, [localTz, meetingTz]);
   function showToast(msg, type = "success") {
     setToast({ msg, type });
     setTimeout(() => setToast(""), 2500);
@@ -302,7 +313,10 @@ function AvailabilityPicker({ meeting, profile, onBack }) {
   }, []);
   async function load() {
     setLoading(true);
-    await sb.from("meeting_members").upsert({ meeting_id: meeting.id, profile_id: profile.id }, { onConflict: "meeting_id,profile_id" });
+    const { data: isMember } = await sb.from("meeting_members").select("profile_id").eq("meeting_id", meeting.id).eq("profile_id", profile.id).maybeSingle();
+    if (!isMember) {
+      await sb.from("meeting_members").insert({ meeting_id: meeting.id, profile_id: profile.id });
+    }
     const [{ data: myA }, { data: allA }, { data: sub }, { data: mems }] = await Promise.all([
       sb.from("availability").select("slot_start").eq("meeting_id", meeting.id).eq("profile_id", profile.id),
       sb.from("availability").select("slot_start").eq("meeting_id", meeting.id),
@@ -480,6 +494,15 @@ function BestSlotsPage({ meeting, profile, onBack }) {
   }, [data, days, meetingTz]);
   const daySlots = useMemo(() => {
     if (!selectedDay || !data) return [];
+    const sameOffset = (() => {
+      try {
+        const now = /* @__PURE__ */ new Date();
+        const getOffset = (tz) => new Intl.DateTimeFormat("en", { timeZone: tz, timeZoneName: "shortOffset" }).formatToParts(now).find((p) => p.type === "timeZoneName")?.value || "";
+        return getOffset(viewTz) === getOffset(meetingTz);
+      } catch {
+        return viewTz === meetingTz;
+      }
+    })();
     const slots = [];
     for (let h = 8; h < 20; h++) {
       for (let m = 0; m < 60; m += 30) {
@@ -491,7 +514,7 @@ function BestSlotsPage({ meeting, profile, onBack }) {
         const available = data.total - busy;
         const pct = data.total > 0 ? available / data.total : 0;
         const displayT = displayTime(normIso, viewTz);
-        const meetT = viewTz !== meetingTz ? displayTime(normIso, meetingTz) : null;
+        const meetT = sameOffset ? null : displayTime(normIso, meetingTz);
         slots.push({ utcIso: normIso, available, busy, pct, displayT, meetT, h, m });
       }
     }
@@ -611,10 +634,11 @@ function MeetingCard({ meeting, profile, onMarkDates, onBestSlots, onRefresh }) 
     loadStats();
   }, []);
   async function loadStats() {
-    Promise.all([
-      sb.from("meeting_members").select("profile_id", { count: "exact" }).eq("meeting_id", meeting.id),
-      sb.from("submissions").select("profile_id", { count: "exact" }).eq("meeting_id", meeting.id)
-    ]).then(([{ count: total }, { count: submitted }]) => setStats({ total: total || 0, submitted: submitted || 0 }));
+    const [{ data: members }, { data: subs }] = await Promise.all([
+      sb.from("meeting_members").select("profile_id").eq("meeting_id", meeting.id),
+      sb.from("submissions").select("profile_id").eq("meeting_id", meeting.id)
+    ]);
+    setStats({ total: (members || []).length, submitted: (subs || []).length });
   }
   async function deleteMeeting() {
     setDeleting(true);
