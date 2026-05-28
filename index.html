@@ -602,13 +602,18 @@ function MeetingCard({ meeting, profile, onMarkDates, onBestSlots, onRefresh }) 
   const [copied, setCopied] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showMembers, setShowMembers] = useState(false);
   const shareUrl = `${window.location.origin}${window.location.pathname}?m=${meeting.share_token}`;
+  const canManage = profile.is_super_admin;
   useEffect(() => {
+    loadStats();
+  }, []);
+  async function loadStats() {
     Promise.all([
       sb.from("meeting_members").select("profile_id", { count: "exact" }).eq("meeting_id", meeting.id),
       sb.from("submissions").select("profile_id", { count: "exact" }).eq("meeting_id", meeting.id)
     ]).then(([{ count: total }, { count: submitted }]) => setStats({ total: total || 0, submitted: submitted || 0 }));
-  }, []);
+  }
   async function deleteMeeting() {
     setDeleting(true);
     await sb.from("meetings").delete().eq("id", meeting.id);
@@ -618,7 +623,78 @@ function MeetingCard({ meeting, profile, onMarkDates, onBestSlots, onRefresh }) 
     navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2e3);
-  }, style: { fontSize: 12, padding: "6px 12px" } }, copied ? "Copied \u2713" : "Copy Link"), /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: onBestSlots, style: { fontSize: 12, padding: "6px 12px" } }, "Best Slots"), profile.is_super_admin && (confirmDelete ? /* @__PURE__ */ React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: T.text3 } }, "Sure?"), /* @__PURE__ */ React.createElement(Btn, { variant: "danger", loading: deleting, onClick: deleteMeeting, style: { fontSize: 11, padding: "5px 10px" } }, "Yes"), /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setConfirmDelete(false), style: { fontSize: 11, padding: "5px 10px" } }, "No")) : /* @__PURE__ */ React.createElement(Btn, { variant: "danger", onClick: () => setConfirmDelete(true), style: { fontSize: 12, padding: "6px 12px", marginLeft: "auto" } }, "Delete"))));
+  }, style: { fontSize: 12, padding: "6px 12px" } }, copied ? "Copied \u2713" : "Copy Link"), /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: onBestSlots, style: { fontSize: 12, padding: "6px 12px" } }, "Best Slots"), canManage && /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setShowMembers(true), style: { fontSize: 12, padding: "6px 12px" } }, "Members"), canManage && (confirmDelete ? /* @__PURE__ */ React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: T.text3 } }, "Sure?"), /* @__PURE__ */ React.createElement(Btn, { variant: "danger", loading: deleting, onClick: deleteMeeting, style: { fontSize: 11, padding: "5px 10px" } }, "Yes"), /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: () => setConfirmDelete(false), style: { fontSize: 11, padding: "5px 10px" } }, "No")) : /* @__PURE__ */ React.createElement(Btn, { variant: "danger", onClick: () => setConfirmDelete(true), style: { fontSize: 12, padding: "6px 12px", marginLeft: "auto" } }, "Delete"))), showMembers && /* @__PURE__ */ React.createElement(ManageMeetingMembersModal, { meeting, onClose: () => {
+    setShowMembers(false);
+    loadStats();
+  } }));
+}
+function ManageMeetingMembersModal({ meeting, onClose }) {
+  const [members, setMembers] = useState([]);
+  const [deptMembers, setDeptMembers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState("");
+  function showToast(msg, type = "success") {
+    setToast({ msg, type });
+    setTimeout(() => setToast(""), 2e3);
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  async function load() {
+    setLoading(true);
+    const [{ data: mm }, { data: dm }, { data: u }] = await Promise.all([
+      sb.from("meeting_members").select("profile_id,profiles(full_name,email)").eq("meeting_id", meeting.id),
+      sb.from("department_members").select("profile_id,profiles(full_name,email)").eq("department_id", meeting.department_id),
+      sb.from("profiles").select("id,full_name,email").order("full_name")
+    ]);
+    setMembers(mm || []);
+    setDeptMembers(dm || []);
+    setAllUsers(u || []);
+    setLoading(false);
+  }
+  async function addMember(profileId) {
+    const { error: e } = await sb.from("meeting_members").insert({ meeting_id: meeting.id, profile_id: profileId });
+    if (e) {
+      showToast("Error: " + e.message, "error");
+      return;
+    }
+    showToast("Member added \u2713");
+    load();
+  }
+  async function removeMember(profileId) {
+    await sb.from("meeting_members").delete().eq("meeting_id", meeting.id).eq("profile_id", profileId);
+    showToast("Member removed");
+    load();
+  }
+  const memberIds = new Set(members.map((m) => m.profile_id));
+  const nonMembers = allUsers.filter((u) => !memberIds.has(u.id));
+  return /* @__PURE__ */ React.createElement(Modal, { title: `Members \u2014 ${meeting.title}`, onClose, width: 480 }, loading ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "center", padding: 24 } }, /* @__PURE__ */ React.createElement(Spinner, null)) : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 16 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: T.text3, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 } }, "Current Members (", members.length, ")"), members.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: T.text3, padding: "10px 0" } }, "No members yet.") : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 5 } }, members.map((m) => /* @__PURE__ */ React.createElement("div", { key: m.profile_id, style: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: T.bg2, borderRadius: 8 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: T.text } }, m.profiles?.full_name || "?"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: T.text3 } }, m.profiles?.email || "")), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: () => removeMember(m.profile_id),
+      style: { fontSize: 11, padding: "3px 10px", borderRadius: 6, cursor: "pointer", background: "transparent", border: `1px solid ${T.red}44`, color: T.red }
+    },
+    "Remove"
+  ))))), nonMembers.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: T.text3, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 } }, "Add Members"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6 } }, nonMembers.map((u) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      key: u.id,
+      onClick: () => addMember(u.id),
+      style: { fontSize: 12, padding: "5px 12px", borderRadius: 20, cursor: "pointer", background: "transparent", border: `1px solid ${T.border2}`, color: T.text2, display: "flex", alignItems: "center", gap: 5 }
+    },
+    /* @__PURE__ */ React.createElement("span", { style: { color: T.green, fontSize: 14, lineHeight: 1 } }, "+"),
+    u.full_name
+  )))), /* @__PURE__ */ React.createElement("div", { style: { background: T.bg2, borderRadius: 8, padding: "12px 14px", fontSize: 12, color: T.text3, lineHeight: 1.7 } }, "\u{1F4A1} ", /* @__PURE__ */ React.createElement("strong", { style: { color: T.text2 } }, "Quick sync:"), ' To add all department members at once, go to \u2699\uFE0F \u2192 Departments and ensure all members are added there, then use the "Sync" button below.'), /* @__PURE__ */ React.createElement(Btn, { variant: "secondary", onClick: async () => {
+    const toAdd = deptMembers.filter((dm) => !memberIds.has(dm.profile_id));
+    if (toAdd.length === 0) {
+      showToast("All dept members already added");
+      return;
+    }
+    await sb.from("meeting_members").insert(toAdd.map((dm) => ({ meeting_id: meeting.id, profile_id: dm.profile_id })));
+    showToast(`Added ${toAdd.length} dept member${toAdd.length > 1 ? "s" : ""} \u2713`);
+    load();
+  }, style: { fontSize: 12, padding: "8px" } }, "\u21BB Sync All Department Members")), /* @__PURE__ */ React.createElement(Toast, { msg: toast.msg, type: toast.type }));
 }
 function CreateMeetingModal({ profile, onClose, onCreated }) {
   const [depts, setDepts] = useState([]);
