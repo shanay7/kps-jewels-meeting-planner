@@ -634,11 +634,20 @@ function MeetingCard({ meeting, profile, onMarkDates, onBestSlots, onRefresh }) 
     loadStats();
   }, []);
   async function loadStats() {
-    const [{ data: members }, { data: subs }] = await Promise.all([
+    const [{ data: members }, { data: deptMembers }] = await Promise.all([
+      sb.from("meeting_members").select("profile_id").eq("meeting_id", meeting.id),
+      sb.from("department_members").select("profile_id").eq("department_id", meeting.department_id)
+    ]);
+    const currentIds = new Set((members || []).map((m) => m.profile_id));
+    const toAdd = (deptMembers || []).filter((dm) => !currentIds.has(dm.profile_id));
+    if (toAdd.length > 0) {
+      await sb.from("meeting_members").insert(toAdd.map((dm) => ({ meeting_id: meeting.id, profile_id: dm.profile_id })));
+    }
+    const [{ data: fresh }, { data: subs }] = await Promise.all([
       sb.from("meeting_members").select("profile_id").eq("meeting_id", meeting.id),
       sb.from("submissions").select("profile_id").eq("meeting_id", meeting.id)
     ]);
-    setStats({ total: (members || []).length, submitted: (subs || []).length });
+    setStats({ total: (fresh || []).length, submitted: (subs || []).length });
   }
   async function deleteMeeting() {
     setDeleting(true);
