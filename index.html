@@ -563,17 +563,19 @@ function Dashboard({ profile }) {
   const [showChangePass, setShowChangePass] = useState(false);
   const [showDeptAdmin, setShowDeptAdmin] = useState(false);
   const [view, setView] = useState(null);
+  const [isDeptAdmin, setIsDeptAdmin] = useState(false);
   const isSA = profile.is_super_admin;
-  const isDeptAdmin = useRef(false);
   useEffect(() => {
     loadMeetings();
   }, []);
   async function loadMeetings() {
     setLoading(true);
-    const { data: da } = await sb.from("department_admins").select("id").eq("profile_id", profile.id).limit(1).maybeSingle();
-    isDeptAdmin.current = !!da;
-    const { data } = await sb.from("meetings").select("*,departments(name)").order("created_at", { ascending: false });
-    setMeetings(data || []);
+    const [{ data: da }, { data: meetings2 }] = await Promise.all([
+      sb.from("department_admins").select("id").eq("profile_id", profile.id).limit(1).maybeSingle(),
+      sb.from("meetings").select("*,departments(name)").order("created_at", { ascending: false })
+    ]);
+    setIsDeptAdmin(!!da);
+    setMeetings(meetings2 || []);
     setLoading(false);
   }
   if (view?.type === "availability") return /* @__PURE__ */ React.createElement(AvailabilityPicker, { meeting: view.meeting, profile, onBack: () => {
@@ -581,8 +583,8 @@ function Dashboard({ profile }) {
     loadMeetings();
   } });
   if (view?.type === "bestslots") return /* @__PURE__ */ React.createElement(BestSlotsPage, { meeting: view.meeting, profile, onBack: () => setView(null) });
-  const canCreate = isSA || isDeptAdmin.current;
-  return /* @__PURE__ */ React.createElement("div", { style: { minHeight: "100vh", background: T.bg } }, /* @__PURE__ */ React.createElement("div", { style: { background: T.bg1, borderBottom: `1px solid ${T.border}`, padding: "0 20px", height: 54, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, letterSpacing: 3, color: T.text3, textTransform: "uppercase" } }, "KPS Jewels"), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Cormorant Garamond',serif", fontSize: 15, color: T.text } }, "Meeting Planner")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center" } }, (isSA || isDeptAdmin.current) && /* @__PURE__ */ React.createElement(Btn, { variant: "ghost", onClick: () => isSA ? setShowAdmin(true) : setShowDeptAdmin(true), style: { fontSize: 18, padding: "4px 8px" } }, "\u2699"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: T.text3, padding: "4px 10px", border: `1px solid ${T.border}`, borderRadius: 6 } }, profile.full_name), /* @__PURE__ */ React.createElement(Btn, { variant: "ghost", onClick: () => setShowChangePass(true), style: { fontSize: 12, color: T.text3, padding: "4px 8px" }, title: "Change Password" }, "\u{1F511}"), /* @__PURE__ */ React.createElement(Btn, { variant: "ghost", onClick: () => sb.auth.signOut(), style: { fontSize: 12, color: T.text3, padding: "4px 8px" } }, "Sign out"))), /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 640, margin: "0 auto", padding: "24px 16px 80px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 24 }, className: "fade-up" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, letterSpacing: 3, color: T.text3, textTransform: "uppercase", marginBottom: 4 } }, "Welcome back"), /* @__PURE__ */ React.createElement("h1", { style: { fontFamily: "'Cormorant Garamond',serif", fontSize: 26, fontWeight: 400, color: T.text } }, profile.full_name)), canCreate && /* @__PURE__ */ React.createElement(Btn, { onClick: () => setShowCreate(true) }, "+ New Meeting")), loading ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "center", padding: 40 } }, /* @__PURE__ */ React.createElement(Spinner, null)) : meetings.length === 0 ? /* @__PURE__ */ React.createElement(Card, { style: { padding: 48, textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 10 } }, "\u{1F4C5}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, color: T.text2, fontFamily: "'Cormorant Garamond',serif" } }, "No meetings yet"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: T.text3, marginTop: 6 } }, canCreate ? "Create your first meeting to get started" : "You haven't been added to any meetings yet")) : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, meetings.map((m) => /* @__PURE__ */ React.createElement(
+  const canCreate = isSA || isDeptAdmin;
+  return /* @__PURE__ */ React.createElement("div", { style: { minHeight: "100vh", background: T.bg } }, /* @__PURE__ */ React.createElement("div", { style: { background: T.bg1, borderBottom: `1px solid ${T.border}`, padding: "0 20px", height: 54, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, letterSpacing: 3, color: T.text3, textTransform: "uppercase" } }, "KPS Jewels"), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Cormorant Garamond',serif", fontSize: 15, color: T.text } }, "Meeting Planner")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center" } }, (isSA || isDeptAdmin) && /* @__PURE__ */ React.createElement(Btn, { variant: "ghost", onClick: () => isSA ? setShowAdmin(true) : setShowDeptAdmin(true), style: { fontSize: 18, padding: "4px 8px" } }, "\u2699"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: T.text3, padding: "4px 10px", border: `1px solid ${T.border}`, borderRadius: 6 } }, profile.full_name), /* @__PURE__ */ React.createElement(Btn, { variant: "ghost", onClick: () => setShowChangePass(true), style: { fontSize: 12, color: T.text3, padding: "4px 8px" }, title: "Change Password" }, "\u{1F511}"), /* @__PURE__ */ React.createElement(Btn, { variant: "ghost", onClick: () => sb.auth.signOut(), style: { fontSize: 12, color: T.text3, padding: "4px 8px" } }, "Sign out"))), /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 640, margin: "0 auto", padding: "24px 16px 80px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 24 }, className: "fade-up" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, letterSpacing: 3, color: T.text3, textTransform: "uppercase", marginBottom: 4 } }, "Welcome back"), /* @__PURE__ */ React.createElement("h1", { style: { fontFamily: "'Cormorant Garamond',serif", fontSize: 26, fontWeight: 400, color: T.text } }, profile.full_name)), canCreate && /* @__PURE__ */ React.createElement(Btn, { onClick: () => setShowCreate(true) }, "+ New Meeting")), loading ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "center", padding: 40 } }, /* @__PURE__ */ React.createElement(Spinner, null)) : meetings.length === 0 ? /* @__PURE__ */ React.createElement(Card, { style: { padding: 48, textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 10 } }, "\u{1F4C5}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, color: T.text2, fontFamily: "'Cormorant Garamond',serif" } }, "No meetings yet"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: T.text3, marginTop: 6 } }, canCreate ? "Create your first meeting to get started" : "You haven't been added to any meetings yet")) : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, meetings.map((m) => /* @__PURE__ */ React.createElement(
     MeetingCard,
     {
       key: m.id,
@@ -807,9 +809,18 @@ function DeptAdminModal({ profile, onClose }) {
   }, []);
   async function load() {
     setLoading(true);
-    const { data: adminDepts } = await sb.from("department_admins").select("department_id,departments(id,name,department_members(profile_id,profiles(full_name,email)))").eq("profile_id", profile.id);
-    const { data: users } = await sb.from("profiles").select("id,full_name,email").order("full_name");
-    setDepts((adminDepts || []).map((d) => d.departments).filter(Boolean));
+    const [{ data: adminDeptIds }, { data: allDepts }, { data: allMembers }, { data: users }] = await Promise.all([
+      sb.from("department_admins").select("department_id").eq("profile_id", profile.id),
+      sb.from("departments").select("id,name").order("name"),
+      sb.from("department_members").select("department_id,profile_id"),
+      sb.from("profiles").select("id,full_name,email").order("full_name")
+    ]);
+    const myDeptIds = new Set((adminDeptIds || []).map((a) => a.department_id));
+    const myDepts = (allDepts || []).filter((d) => myDeptIds.has(d.id)).map((d) => ({
+      ...d,
+      department_members: (allMembers || []).filter((m) => m.department_id === d.id)
+    }));
+    setDepts(myDepts);
     setAllUsers(users || []);
     setLoading(false);
   }
