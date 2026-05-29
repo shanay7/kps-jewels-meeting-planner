@@ -454,14 +454,15 @@ function BestSlotsPage({ meeting, profile, onBack }) {
       sb.from("submissions").select("profile_id,profiles(full_name)").eq("meeting_id", meeting.id)
     ]);
     const total = (members || []).length;
+    const subIds = new Set((subs || []).map((s) => s.profile_id));
+    const submittedCount = subIds.size;
     const busyMap = {};
     (avail || []).forEach((r) => {
       const key = new Date(r.slot_start).toISOString();
       busyMap[key] = (busyMap[key] || 0) + 1;
     });
-    const subIds = new Set((subs || []).map((s) => s.profile_id));
     const pending = (members || []).filter((m) => !subIds.has(m.profile_id)).map((m) => m.profiles?.full_name || "?");
-    setData({ total, busyMap, pending });
+    setData({ total, submittedCount, busyMap, pending });
     setLoading(false);
   }
   const days = useMemo(() => {
@@ -486,7 +487,7 @@ function BestSlotsPage({ meeting, profile, onBack }) {
           const utcIso = toUTC(localStr, meetingTz);
           const normIso = new Date(utcIso).toISOString();
           const busy = data.busyMap[normIso] || 0;
-          const avail = data.total - busy;
+          const avail = data.submittedCount - busy;
           if (avail > bestAvail) bestAvail = avail;
         }
       }
@@ -513,8 +514,8 @@ function BestSlotsPage({ meeting, profile, onBack }) {
         const utcIso = toUTC(localStr, meetingTz);
         const normIso = new Date(utcIso).toISOString();
         const busy = data.busyMap[normIso] || 0;
-        const available = data.total - busy;
-        const pct = data.total > 0 ? available / data.total : 0;
+        const available = data.submittedCount - busy;
+        const pct = data.submittedCount > 0 ? available / data.submittedCount : 0;
         const displayT = displayTime(normIso, viewTz);
         const meetT = sameOffset ? null : displayTime(normIso, meetingTz);
         slots.push({ utcIso: normIso, available, busy, pct, displayT, meetT, h, m });
@@ -537,7 +538,7 @@ function BestSlotsPage({ meeting, profile, onBack }) {
       style: { ...selectStyle, width: "auto", fontSize: 11, padding: "5px 10px", background: T.bg2 }
     },
     TIMEZONES.map((t) => /* @__PURE__ */ React.createElement("option", { key: t.value, value: t.value }, t.label))
-  )), loading ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "center", padding: 60 } }, /* @__PURE__ */ React.createElement(Spinner, { size: 32 })) : /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 580, margin: "0 auto", padding: "20px 16px 60px" } }, data.pending.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { background: T.gold + "11", border: `1px solid ${T.gold}33`, borderRadius: 10, padding: "11px 14px", marginBottom: 16, fontSize: 12, color: T.text2 } }, "\u23F3 ", /* @__PURE__ */ React.createElement("strong", { style: { color: T.text } }, data.pending.length, " member", data.pending.length > 1 ? "s" : ""), " haven't submitted yet: ", data.pending.slice(0, 4).join(", "), data.pending.length > 4 ? ` +${data.pending.length - 4} more` : ""), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: T.text3, marginBottom: 16 } }, "Tap a date to see available 8am\u20138pm slots \xB7 ", data.total, " members total \xB7 Times in ", tzLabel(viewTz)), /* @__PURE__ */ React.createElement(Card, { style: { padding: "16px", marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: 6 } }, ["S", "M", "T", "W", "T", "F", "S"].map((d, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { textAlign: "center", fontSize: 10, color: T.text3, padding: "3px 0" } }, d))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 } }, calendarCells.map((day, i) => {
+  )), loading ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "center", padding: 60 } }, /* @__PURE__ */ React.createElement(Spinner, { size: 32 })) : /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 580, margin: "0 auto", padding: "20px 16px 60px" } }, data.pending.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { background: T.gold + "11", border: `1px solid ${T.gold}33`, borderRadius: 10, padding: "11px 14px", marginBottom: 16, fontSize: 12, color: T.text2 } }, "\u23F3 ", /* @__PURE__ */ React.createElement("strong", { style: { color: T.text } }, data.pending.length, " member", data.pending.length > 1 ? "s" : ""), " haven't submitted yet: ", data.pending.slice(0, 4).join(", "), data.pending.length > 4 ? ` +${data.pending.length - 4} more` : ""), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: T.text3, marginBottom: 16 } }, "Tap a date to see 8am\u20138pm slots \xB7 Only ", /* @__PURE__ */ React.createElement("strong", { style: { color: T.gold } }, data.submittedCount, " submitted"), " members counted \xB7 ", data.total, " total"), /* @__PURE__ */ React.createElement(Card, { style: { padding: "16px", marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: 6 } }, ["S", "M", "T", "W", "T", "F", "S"].map((d, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { textAlign: "center", fontSize: 10, color: T.text3, padding: "3px 0" } }, d))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 } }, calendarCells.map((day, i) => {
     if (!day) return /* @__PURE__ */ React.createElement("div", { key: i });
     const best = dayScores[day] ?? 0;
     const pct = data.total > 0 ? best / data.total : 0;
@@ -565,7 +566,7 @@ function BestSlotsPage({ meeting, profile, onBack }) {
         }
       },
       /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: isSelected ? color : pct > 0 ? T.text : T.text3, fontWeight: isSelected ? 600 : 400 } }, dayNum),
-      data.total > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 9, color: pct > 0 ? color : T.text3 } }, best, "/", data.total)
+      data.submittedCount > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 9, color: pct > 0 ? color : T.text3 } }, best, "/", data.submittedCount)
     );
   })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, marginTop: 12, fontSize: 10, color: T.text3, justifyContent: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 4 } }, /* @__PURE__ */ React.createElement("span", { style: { width: 8, height: 8, borderRadius: 2, background: T.green, display: "inline-block" } }), " All free"), /* @__PURE__ */ React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 4 } }, /* @__PURE__ */ React.createElement("span", { style: { width: 8, height: 8, borderRadius: 2, background: T.gold, display: "inline-block" } }), " Some free"), /* @__PURE__ */ React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 4 } }, /* @__PURE__ */ React.createElement("span", { style: { width: 8, height: 8, borderRadius: 2, background: T.red, display: "inline-block" } }), " Many busy"), /* @__PURE__ */ React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 4 } }, /* @__PURE__ */ React.createElement("span", { style: { width: 8, height: 8, borderRadius: 2, background: T.bg3, border: `1px solid ${T.border}`, display: "inline-block" } }), " No data"))), selectedDay && /* @__PURE__ */ React.createElement("div", { className: "fade-up" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Cormorant Garamond',serif", fontSize: 18, color: T.text } }, (/* @__PURE__ */ new Date(selectedDay + "T12:00:00")).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: T.text3 } }, "8:00 AM \u2013 8:00 PM \xB7 ", tzLabel(meetingTz))), daySlots.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: 32, color: T.text2, fontSize: 13 } }, "No slot data yet") : /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } }, daySlots.map((s, idx) => {
     const color = s.pct === 1 ? T.green : s.pct >= 0.8 ? "#84cc16" : s.pct >= 0.6 ? T.gold : "#f97316";
@@ -577,7 +578,7 @@ function BestSlotsPage({ meeting, profile, onBack }) {
       display: "flex",
       alignItems: "center",
       gap: 12
-    } }, idx === 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: T.gold, letterSpacing: 1, flexShrink: 0 } }, "\u2605"), /* @__PURE__ */ React.createElement("div", { style: { minWidth: 90 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, color: idx === 0 ? color : T.text, fontWeight: idx === 0 ? 600 : 400 } }, s.displayT), s.meetT && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: T.text3 } }, s.meetT, " ", tzLabel(meetingTz))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { height: 4, background: T.bg3, borderRadius: 2 } }, /* @__PURE__ */ React.createElement("div", { style: { width: `${s.pct * 100}%`, height: "100%", background: color, borderRadius: 2, transition: "width 0.4s" } }))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color, minWidth: 48, textAlign: "right", fontWeight: 500 } }, s.available, "/", data.total));
+    } }, idx === 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: T.gold, letterSpacing: 1, flexShrink: 0 } }, "\u2605"), /* @__PURE__ */ React.createElement("div", { style: { minWidth: 90 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, color: idx === 0 ? color : T.text, fontWeight: idx === 0 ? 600 : 400 } }, s.displayT), s.meetT && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: T.text3 } }, s.meetT, " ", tzLabel(meetingTz))), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { height: 4, background: T.bg3, borderRadius: 2 } }, /* @__PURE__ */ React.createElement("div", { style: { width: `${s.pct * 100}%`, height: "100%", background: color, borderRadius: 2, transition: "width 0.4s" } }))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color, minWidth: 48, textAlign: "right", fontWeight: 500 } }, s.available, "/", data.submittedCount));
   }))), !selectedDay && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "24px 0", fontSize: 12, color: T.text3 } }, "\u2191 Tap any date above to see time slot availability")));
 }
 function Dashboard({ profile }) {
