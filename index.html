@@ -323,10 +323,11 @@ function AvailabilityPicker({ meeting, profile, onBack }) {
       sb.from("submissions").select("id").eq("meeting_id", meeting.id).eq("profile_id", profile.id).maybeSingle(),
       sb.from("meeting_members").select("profile_id").eq("meeting_id", meeting.id)
     ]);
-    setBusySlots(new Set((myA || []).map((r) => r.slot_start)));
+    setBusySlots(new Set((myA || []).map((r) => new Date(r.slot_start).toISOString())));
     const m = {};
     (allA || []).forEach((r) => {
-      m[r.slot_start] = (m[r.slot_start] || 0) + 1;
+      const key = new Date(r.slot_start).toISOString();
+      m[key] = (m[key] || 0) + 1;
     });
     setAllBusy(m);
     setSubmitted(!!sub);
@@ -455,7 +456,8 @@ function BestSlotsPage({ meeting, profile, onBack }) {
     const total = (members || []).length;
     const busyMap = {};
     (avail || []).forEach((r) => {
-      busyMap[r.slot_start] = (busyMap[r.slot_start] || 0) + 1;
+      const key = new Date(r.slot_start).toISOString();
+      busyMap[key] = (busyMap[key] || 0) + 1;
     });
     const subIds = new Set((subs || []).map((s) => s.profile_id));
     const pending = (members || []).filter((m) => !subIds.has(m.profile_id)).map((m) => m.profiles?.full_name || "?");
