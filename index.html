@@ -785,10 +785,18 @@ function CreateMeetingModal({ profile, onClose, onCreated }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
-    sb.from("departments").select("*").then(({ data }) => {
-      setDepts(data || []);
-      if (data && data[0]) setForm((f2) => ({ ...f2, deptId: data[0].id }));
-    });
+    if (profile.is_super_admin) {
+      sb.from("departments").select("*").then(({ data }) => {
+        setDepts(data || []);
+        if (data && data[0]) setForm((f2) => ({ ...f2, deptId: data[0].id }));
+      });
+    } else {
+      sb.from("department_admins").select("department_id,departments(id,name)").eq("profile_id", profile.id).then(({ data }) => {
+        const myDepts = (data || []).map((d) => d.departments).filter(Boolean);
+        setDepts(myDepts);
+        if (myDepts[0]) setForm((f2) => ({ ...f2, deptId: myDepts[0].id }));
+      });
+    }
   }, []);
   useEffect(() => {
     if (!form.deptId) return;
